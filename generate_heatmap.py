@@ -35,6 +35,20 @@ PARTY_COLORS = {
     'Independent': '#808080'
 }
 
+# Party Logo Mapping (Official Public Icons)
+PARTY_LOGOS = {
+    'BJP': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Bharatiya_Janata_Party_logo.svg/512px-Bharatiya_Janata_Party_logo.svg.png',
+    'SHS': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Logo_of_Shiv_Sena.svg/512px-Logo_of_Shiv_Sena.svg.png',
+    'SHS-UBT': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Shiv_Sena_%28UBT%29_Flaming_Torch_Symbol.png/512px-Shiv_Sena_%28UBT%29_Flaming_Torch_Symbol.png',
+    'INC': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Indian_National_Congress_hand_logo.png/512px-Indian_National_Congress_hand_logo.png',
+    'NCP': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/Nationalist_Congress_Party_logo.svg/512px-Nationalist_Congress_Party_logo.svg.png',
+    'NCP(SP)': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Nationalist_Congress_Party_%E2%80%93_Sharadchandra_Pawar_Symbol.png/512px-Nationalist_Congress_Party_%E2%80%93_Sharadchandra_Pawar_Symbol.png',
+    'SP': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Samajwadi_Party.png/512px-Samajwadi_Party.png',
+    'AIMIM': 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/All_India_Majlis-e-Ittehadul_Muslimeen_logo.svg/512px-All_India_Majlis-e-Ittehadul_Muslimeen_logo.svg.png',
+    'CPI(M)': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/CPI-M-flag.svg/512px-CPI-M-flag.svg.png',
+    'Independent': 'https://cdn-icons-png.flaticon.com/512/1144/1144760.png'
+}
+
 html_template = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -68,7 +82,7 @@ html_template = """<!DOCTYPE html>
             grid-template-areas: 
                 "header header header"
                 "slicers canvas visuals";
-            grid-template-columns: 260px 1fr 320px;
+            grid-template-columns: 260px 1fr 340px;
             grid-template-rows: 48px 1fr;
             height: 100vh;
             width: 100vw;
@@ -185,6 +199,22 @@ html_template = """<!DOCTYPE html>
         .data-table tr:nth-child(even) {{ background: #FAF9F8; }}
         .data-table td {{ padding: 8px 4px; border-bottom: 1px solid var(--bi-border); }}
 
+        /* Logo Styling */
+        .party-logo-main {{
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin: 0 auto 10px auto;
+            display: block;
+        }}
+        .party-logo-small {{
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+            vertical-align: middle;
+            margin-right: 5px;
+        }}
+
         /* BI Specific Visuals */
         .color-bar {{ height: 4px; width: 100%; position: absolute; top: 0; left: 0; }}
 
@@ -214,19 +244,6 @@ html_template = """<!DOCTYPE html>
             }}
             .visuals {{ border-left: none; border-top: 1px solid var(--bi-border); flex-direction: row; flex-wrap: wrap; }}
             .card-tile {{ flex: 1; min-width: 250px; }}
-        }}
-
-        @media (max-width: 768px) {{
-            .container {{
-                grid-template-areas: 
-                    "header"
-                    "canvas"
-                    "slicers"
-                    "visuals";
-                grid-template-columns: 1fr;
-                grid-template-rows: 48px 1fr auto auto;
-            }}
-            .slicers, .visuals {{ border: none; }}
         }}
     </style>
 </head>
@@ -293,6 +310,7 @@ html_template = """<!DOCTYPE html>
                 <div class="color-bar" style="background: #107C10;"></div>
                 <div class="card-header">Dominating Political Power</div>
                 <div class="card-body metric">
+                    <img id="dominating-logo" src="" class="party-logo-main" style="display: none;">
                     <span class="metric-value" id="dominating-party" style="font-size: 24px;">-</span>
                     <span class="metric-label">Majority Unit</span>
                 </div>
@@ -313,6 +331,7 @@ html_template = """<!DOCTYPE html>
     <script>
         const mapData = {data_json};
         const PARTY_COLORS = {party_colors_json};
+        const PARTY_LOGOS = {party_logos_json};
         let myChart = null;
 
         // Initialize Slicers
@@ -339,6 +358,10 @@ html_template = """<!DOCTYPE html>
         }}).addTo(map);
         const markerGroup = L.layerGroup().addTo(map);
 
+        function getPartyLogo(party) {{
+            return PARTY_LOGOS[party] || 'https://cdn-icons-png.flaticon.com/512/1144/1144760.png';
+        }}
+
         function updateDisplay() {{
             const searchTerm = document.getElementById('search-input').value.toLowerCase();
             const selectedParty = document.getElementById('party-filter').value;
@@ -357,10 +380,12 @@ html_template = """<!DOCTYPE html>
             
             filteredData.forEach(d => {{
                 const pColor = PARTY_COLORS[d.party] || '#0078D4';
+                const pLogo = getPartyLogo(d.party);
                 const marker = L.circleMarker([d.lat, d.lng], {{
                     radius: 5, fillColor: pColor, color: '#fff', weight: 1, opacity: 0.8, fillOpacity: 0.9
                 }});
                 marker.bindPopup(`<div style="font-family: 'Segoe UI'; min-width: 150px;">
+                    <img src="${{pLogo}}" class="party-logo-small">
                     <b style="color:${{pColor}}; font-size: 14px;">${{d.name}}</b><br>
                     <span style="font-size: 12px; color: #605E5C;">${{d.district}}</span><hr style="border: 0; border-top: 1px solid #EDEBE9;">
                     <span style="font-size: 12px; font-weight: 600;">MLA: ${{d.member}}</span><br>
@@ -380,6 +405,7 @@ html_template = """<!DOCTYPE html>
             if (data.length === 0) {{
                  if (myChart) myChart.destroy();
                  document.getElementById('dominating-party').textContent = '-';
+                 document.getElementById('dominating-logo').style.display = 'none';
                  document.getElementById('district-rankings').innerHTML = '';
                  return;
             }}
@@ -388,8 +414,12 @@ html_template = """<!DOCTYPE html>
             const sorted = Object.entries(partyCount).sort((a,b) => b[1] - a[1]);
             
             const mainParty = sorted[0][0];
+            const pLogo = getPartyLogo(mainParty);
+            
             document.getElementById('dominating-party').textContent = mainParty;
             document.getElementById('dominating-party').style.color = PARTY_COLORS[mainParty] || '#0078D4';
+            document.getElementById('dominating-logo').src = pLogo;
+            document.getElementById('dominating-logo').style.display = 'block';
 
             const labels = sorted.slice(0, 5).map(p => p[0]);
             const values = sorted.slice(0, 5).map(p => p[1]);
@@ -455,7 +485,7 @@ html_template = """<!DOCTYPE html>
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.setAttribute('hidden', ''); a.setAttribute('href', url);
-            a.setAttribute('download', 'powerbi_report_export.csv');
+            a.setAttribute('download', 'powerbi_logo_report_export.csv');
             document.body.appendChild(a);
             a.click(); document.body.removeChild(a);
         }};
@@ -468,10 +498,11 @@ html_template = """<!DOCTYPE html>
 
 final_html = html_template.format(
     data_json=json.dumps(data),
-    party_colors_json=json.dumps(PARTY_COLORS)
+    party_colors_json=json.dumps(PARTY_COLORS),
+    party_logos_json=json.dumps(PARTY_LOGOS)
 )
 
 with open(html_path, 'w') as f:
     f.write(final_html)
 
-print(f"Successfully generated Power BI report at {{html_path}}.")
+print(f"Successfully generated Power BI report with logos at {{html_path}}.")
