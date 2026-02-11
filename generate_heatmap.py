@@ -144,6 +144,43 @@ html_template = """<!DOCTYPE html>
             color: #475569;
         }}
 
+        .filters {{
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }}
+
+        .filter-group {{
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }}
+
+        .filter-group label {{
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+        }}
+
+        input[type="text"], select {{
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 10px;
+            color: var(--text-color);
+            font-family: inherit;
+            font-size: 13px;
+            transition: border-color 0.2s;
+        }}
+
+        input[type="text"]:focus, select:focus {{
+            outline: none;
+            border-color: var(--accent-color);
+            background: rgba(255, 255, 255, 0.9);
+        }}
+
         .legend {{
             position: absolute;
             bottom: 30px;
@@ -171,16 +208,42 @@ html_template = """<!DOCTYPE html>
             border-radius: 5px;
             margin: 0 10px;
         }}
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {{
+            width: 6px;
+        }}
+        ::-webkit-scrollbar-track {{
+            background: transparent;
+        }}
+        ::-webkit-scrollbar-thumb {{
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }}
     </style>
 </head>
 <body>
     <div class="overlay">
         <h1>Maharashtra MLA Heatmap</h1>
         <p>Visualizing the density and distribution of 288 constituencies across the state based on the 2024 Election data.</p>
+        
+        <div class="filters">
+            <div class="filter-group">
+                <label>Search Constituency/MLA</label>
+                <input type="text" id="search-input" placeholder="Search name...">
+            </div>
+            <div class="filter-group">
+                <label>Political Party</label>
+                <select id="party-filter">
+                    <option value="all">All Parties</option>
+                </select>
+            </div>
+        </div>
+
         <div class="stats">
             <div class="stat-card">
-                <span class="stat-value">288</span>
-                <span class="stat-label">Constituencies</span>
+                <span class="stat-value" id="count-value">288</span>
+                <span class="stat-label">Results</span>
             </div>
             <div class="stat-card">
                 <span class="stat-value">36</span>
@@ -203,6 +266,17 @@ html_template = """<!DOCTYPE html>
     <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
     <script>
         const mapData = {data_json};
+        
+        // Get unique parties
+        const parties = ["all", ...new Set(mapData.map(d => d.party))].sort();
+        const partyFilter = document.getElementById('party-filter');
+        parties.forEach(p => {{
+            if (p === "all") return;
+            const opt = document.createElement('option');
+            opt.value = p;
+            opt.textContent = p;
+            partyFilter.appendChild(opt);
+        }});
 
         const map = L.map('map', {{
             zoomControl: false,
@@ -217,41 +291,68 @@ html_template = """<!DOCTYPE html>
             position: 'bottomleft'
         }}).addTo(map);
 
-        const heatData = mapData.map(d => [d.lat, d.lng, 1.0]);
-        
-        const heat = L.heatLayer(heatData, {{
+        const heat = L.heatLayer([], {{
             radius: 35,
             blur: 25,
             maxZoom: 10,
             gradient: {{0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red'}}
         }}).addTo(map);
 
-        mapData.forEach(d => {{
-            const marker = L.circleMarker([d.lat, d.lng], {{
-                radius: 4,
-                fillColor: '#a855f7',
-                color: '#fff',
-                weight: 1,
-                opacity: 0.5,
-                fillOpacity: 0.8
+        const markerGroup = L.layerGroup().addTo(map);
+
+        function updateDisplay() {{
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const selectedParty = document.getElementById('party-filter').value;
+            
+            const filteredData = mapData.filter(d => {{
+                const matchesSearch = d.name.toLowerCase().includes(searchTerm) || 
+                                    d.member.toLowerCase().includes(searchTerm);
+                const matchesParty = selectedParty === 'all' || d.party === selectedParty;
+                return matchesSearch && matchesParty;
             }});
 
-            marker.bindPopup(`
-                <div class="custom-popup">
-                    <b>${{d.name}}</b>
-                    <span>District: ${{d.district}}</span><br>
-                    <span>MLA: ${{d.member}}</span><br>
-                    <span>Party: ${{d.party}}</span>
-                </div>
-            `);
-            
-            marker.addTo(map);
-        }});
+            // Update stats
+            document.getElementById('count-value').textContent = filteredData.length;
 
-        if (mapData.length > 0) {{
-            const bounds = L.latLngBounds(mapData.map(d => [d.lat, d.lng]));
-            map.fitBounds(bounds.pad(0.1));
+            // Update Heatmap
+            heat.setLatLngs(filteredData.map(d => [d.lat, d.lng, 1.0]));
+
+            // Update Markers
+            markerGroup.clearLayers();
+            filteredData.forEach(d => {{
+                const marker = L.circleMarker([d.lat, d.lng], {{
+                    radius: 4,
+                    fillColor: '#7c3aed',
+                    color: '#fff',
+                    weight: 1,
+                    opacity: 0.5,
+                    fillOpacity: 0.8
+                }});
+
+                marker.bindPopup(`
+                    <div class="custom-popup">
+                        <b>${{d.name}}</b>
+                        <span>District: ${{d.district}}</span><br>
+                        <span>MLA: ${{d.member}}</span><br>
+                        <span>Party: ${{d.party}}</span>
+                    </div>
+                `);
+                
+                markerGroup.addLayer(marker);
+            }});
+
+            // Zoom to results if appropriate (at least one result)
+            if (filteredData.length > 0 && (searchTerm || selectedParty !== 'all')) {{
+                const bounds = L.latLngBounds(filteredData.map(d => [d.lat, d.lng]));
+                map.flyToBounds(bounds.pad(0.1), {{ duration: 0.8 }});
+            }}
         }}
+
+        document.getElementById('search-input').addEventListener('input', updateDisplay);
+        document.getElementById('party-filter').addEventListener('change', updateDisplay);
+
+        // Initial render
+        updateDisplay();
     </script>
 </body>
 </html>
