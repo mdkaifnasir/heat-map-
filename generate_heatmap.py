@@ -31,11 +31,11 @@ html_template = """<!DOCTYPE html>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root {{
-            --bg-color: #0d0d12;
-            --card-bg: rgba(25, 25, 35, 0.8);
-            --accent-color: #a855f7;
-            --text-color: #e2e8f0;
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --bg-color: #f8fafc;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --accent-color: #7c3aed;
+            --text-color: #1e293b;
+            --glass-border: rgba(0, 0, 0, 0.1);
         }}
 
         body, html {{
@@ -64,7 +64,7 @@ html_template = """<!DOCTYPE html>
             padding: 24px;
             border-radius: 20px;
             border: 1px solid var(--glass-border);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             max-width: 320px;
             animation: fadeIn 0.8s ease-out;
         }}
@@ -78,7 +78,7 @@ html_template = """<!DOCTYPE html>
             margin: 0 0 8px 0;
             font-size: 22px;
             font-weight: 600;
-            background: linear-gradient(to right, #a855f7, #ec4899);
+            background: linear-gradient(to right, #7c3aed, #db2777);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }}
@@ -86,7 +86,7 @@ html_template = """<!DOCTYPE html>
         p {{
             margin: 0;
             font-size: 14px;
-            color: #94a3b8;
+            color: #475569;
             line-height: 1.5;
         }}
 
@@ -98,7 +98,7 @@ html_template = """<!DOCTYPE html>
         }}
 
         .stat-card {{
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.03);
             padding: 12px;
             border-radius: 12px;
             text-align: center;
@@ -125,6 +125,7 @@ html_template = """<!DOCTYPE html>
             border-radius: 12px !important;
             border: 1px solid var(--glass-border) !important;
             padding: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
         }}
 
         .leaflet-popup-tip {{
@@ -140,7 +141,7 @@ html_template = """<!DOCTYPE html>
 
         .custom-popup span {{
             font-size: 13px;
-            color: #cbd5e1;
+            color: #475569;
         }}
 
         .legend {{
@@ -154,6 +155,7 @@ html_template = """<!DOCTYPE html>
             border-radius: 15px;
             border: 1px solid var(--glass-border);
             font-size: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }}
 
         .legend-item {{
@@ -207,7 +209,7 @@ html_template = """<!DOCTYPE html>
             attributionControl: false
         }}).setView([19.7515, 75.7139], 7);
 
-        L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
+        L.tileLayer('https://{{s}}.basemaps.cartocdn.com/light_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
             maxZoom: 19
         }}).addTo(map);
 
