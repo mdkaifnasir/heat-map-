@@ -362,6 +362,28 @@ html_template = """<!DOCTYPE html>
             return PARTY_LOGOS[party] || 'https://cdn-icons-png.flaticon.com/512/1144/1144760.png';
         }}
 
+        function handleImageError(img, party) {{
+            img.style.display = 'none';
+            const parent = img.parentElement;
+            if (parent && !parent.querySelector('.party-fallback')) {{
+                const fallback = document.createElement('div');
+                fallback.className = 'party-fallback';
+                fallback.style.background = PARTY_COLORS[party] || '#0078D4';
+                fallback.style.color = 'white';
+                fallback.style.borderRadius = '4px';
+                fallback.style.width = '48px';
+                fallback.style.height = '48px';
+                fallback.style.display = 'flex';
+                fallback.style.alignItems = 'center';
+                fallback.style.justifyContent = 'center';
+                fallback.style.fontSize = '12px';
+                fallback.style.fontWeight = '600';
+                fallback.style.margin = '0 auto 10px';
+                fallback.textContent = party.substring(0, 3);
+                parent.prepend(fallback);
+            }}
+        }}
+
         function updateDisplay() {{
             const searchTerm = document.getElementById('search-input').value.toLowerCase();
             const selectedParty = document.getElementById('party-filter').value;
@@ -384,9 +406,9 @@ html_template = """<!DOCTYPE html>
                 const marker = L.circleMarker([d.lat, d.lng], {{
                     radius: 5, fillColor: pColor, color: '#fff', weight: 1, opacity: 0.8, fillOpacity: 0.9
                 }});
-                marker.bindPopup(`<div style="font-family: 'Segoe UI'; min-width: 150px;">
-                    <img src="${{pLogo}}" class="party-logo-small">
-                    <b style="color:${{pColor}}; font-size: 14px;">${{d.name}}</b><br>
+                marker.bindPopup(`<div style="font-family: 'Segoe UI'; min-width: 150px; text-align: center;">
+                    <img src="${{pLogo}}" class="party-logo-small" onerror="handleImageError(this, '${{d.party}}')">
+                    <b style="color:${{pColor}}; font-size: 14px; display: block;">${{d.name}}</b>
                     <span style="font-size: 12px; color: #605E5C;">${{d.district}}</span><hr style="border: 0; border-top: 1px solid #EDEBE9;">
                     <span style="font-size: 12px; font-weight: 600;">MLA: ${{d.member}}</span><br>
                     <span style="font-size: 11px; color: #605E5C;">${{d.party}}</span>
@@ -406,6 +428,8 @@ html_template = """<!DOCTYPE html>
                  if (myChart) myChart.destroy();
                  document.getElementById('dominating-party').textContent = '-';
                  document.getElementById('dominating-logo').style.display = 'none';
+                 const existingFallback = document.querySelector('.card-body .party-fallback');
+                 if (existingFallback) existingFallback.remove();
                  document.getElementById('district-rankings').innerHTML = '';
                  return;
             }}
@@ -418,8 +442,13 @@ html_template = """<!DOCTYPE html>
             
             document.getElementById('dominating-party').textContent = mainParty;
             document.getElementById('dominating-party').style.color = PARTY_COLORS[mainParty] || '#0078D4';
-            document.getElementById('dominating-logo').src = pLogo;
-            document.getElementById('dominating-logo').style.display = 'block';
+            
+            const domLogo = document.getElementById('dominating-logo');
+            domLogo.src = pLogo;
+            domLogo.style.display = 'block';
+            domLogo.onerror = () => handleImageError(domLogo, mainParty);
+            const existingFallback = domLogo.parentElement.querySelector('.party-fallback');
+            if (existingFallback) existingFallback.remove();
 
             const labels = sorted.slice(0, 5).map(p => p[0]);
             const values = sorted.slice(0, 5).map(p => p[1]);
