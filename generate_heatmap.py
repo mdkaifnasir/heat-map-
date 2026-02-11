@@ -37,12 +37,12 @@ PARTY_COLORS = {
 
 # Party Logo Mapping (Official Public Icons)
 PARTY_LOGOS = {
-    'BJP': 'https://upload.wikimedia.org/wikipedia/en/thumb/1/1e/Bharatiya_Janata_Party_logo.svg/512px-Bharatiya_Janata_Party_logo.svg.png',
+    'BJP': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Logo_of_the_Bharatiya_Janata_Party.svg/512px-Logo_of_the_Bharatiya_Janata_Party.svg.png',
     'SHS': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Logo_of_Shiv_Sena.svg/512px-Logo_of_Shiv_Sena.svg.png',
     'SHS-UBT': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Shiv_Sena_%28UBT%29_Flaming_Torch_Symbol.png/512px-Shiv_Sena_%28UBT%29_Flaming_Torch_Symbol.png',
-    'INC': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Indian_National_Congress_hand_logo.png/512px-Indian_National_Congress_hand_logo.png',
+    'INC': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Indian_National_Congress_hand_logo.svg/512px-Indian_National_Congress_hand_logo.svg.png',
     'NCP': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/Nationalist_Congress_Party_logo.svg/512px-Nationalist_Congress_Party_logo.svg.png',
-    'NCP(SP)': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Tutari_Symbol.png/512px-Tutari_Symbol.png',
+    'NCP(SP)': 'https://upload.wikimedia.org/wikipedia/en/thumb/e/e7/Nationalist_Congress_Party_%28Sharadchandra_Pawar%29_Logo.jpg/512px-Nationalist_Congress_Party_%28Sharadchandra_Pawar%29_Logo.jpg',
     'SP': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Samajwadi_Party.png/512px-Samajwadi_Party.png',
     'AIMIM': 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/All_India_Majlis-e-Ittehadul_Muslimeen_logo.svg/512px-All_India_Majlis-e-Ittehadul_Muslimeen_logo.svg.png',
     'CPI(M)': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/CPI-M-flag.svg/512px-CPI-M-flag.svg.png',
