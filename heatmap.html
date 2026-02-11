@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maharashtra MLA Heatmap 2024</title>
+    <title>Maharashtra MLA Analysis Dashboard 2024</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-color: #f8fafc;
@@ -44,6 +45,31 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             max-width: 320px;
             animation: fadeIn 0.8s ease-out;
+            transition: all 0.3s ease;
+        }
+
+        .analysis-panel {
+            position: absolute;
+            top: 20px;
+            right: -400px;
+            bottom: 20px;
+            width: 350px;
+            z-index: 1001;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            padding: 24px;
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: right 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .analysis-panel.open {
+            right: 20px;
         }
 
         @keyframes fadeIn {
@@ -51,74 +77,22 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        h1 {
+        h1, h2 {
             margin: 0 0 8px 0;
-            font-size: 22px;
             font-weight: 600;
             background: linear-gradient(to right, #7c3aed, #db2777);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
+        h1 { font-size: 22px; }
+        h2 { font-size: 18px; margin-bottom: 12px; }
+
         p {
             margin: 0;
             font-size: 14px;
             color: #475569;
             line-height: 1.5;
-        }
-
-        .stats {
-            margin-top: 20px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .stat-card {
-            background: rgba(0, 0, 0, 0.03);
-            padding: 12px;
-            border-radius: 12px;
-            text-align: center;
-        }
-
-        .stat-value {
-            display: block;
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--accent-color);
-        }
-
-        .stat-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #64748b;
-        }
-
-        .leaflet-popup-content-wrapper {
-            background: var(--card-bg) !important;
-            backdrop-filter: blur(12px) !important;
-            color: var(--text-color) !important;
-            border-radius: 12px !important;
-            border: 1px solid var(--glass-border) !important;
-            padding: 5px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
-        }
-
-        .leaflet-popup-tip {
-            background: var(--card-bg) !important;
-        }
-
-        .custom-popup b {
-            color: var(--accent-color);
-            display: block;
-            margin-bottom: 4px;
-            font-size: 16px;
-        }
-
-        .custom-popup span {
-            font-size: 13px;
-            color: #475569;
         }
 
         .filters {
@@ -149,19 +123,98 @@
             color: var(--text-color);
             font-family: inherit;
             font-size: 13px;
-            transition: border-color 0.2s;
         }
 
-        input[type="text"]:focus, select:focus {
-            outline: none;
-            border-color: var(--accent-color);
-            background: rgba(255, 255, 255, 0.9);
+        .stats, .analysis-section {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .stat-card, .analysis-card {
+            background: rgba(0, 0, 0, 0.03);
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .stat-value, .analysis-value {
+            display: block;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .stat-label, .analysis-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+        }
+
+        .toggle-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1002;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+            transition: all 0.3s;
+        }
+
+        .toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+        }
+
+        .toggle-btn.active {
+            background: #db2777;
+            box-shadow: 0 4px 12px rgba(219, 39, 119, 0.3);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 200px;
+            width: 100%;
+        }
+
+        .analysis-full-width {
+            grid-column: span 2;
+        }
+
+        .district-rank-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .district-rank-item:last-child { border: none; }
+
+        .leaflet-popup-content-wrapper {
+            background: var(--card-bg) !important;
+            backdrop-filter: blur(12px) !important;
+            color: var(--text-color) !important;
+            border-radius: 12px !important;
+            border: 1px solid var(--glass-border) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
         }
 
         .legend {
             position: absolute;
             bottom: 30px;
-            right: 20px;
+            left: 20px;
             z-index: 1000;
             background: var(--card-bg);
             backdrop-filter: blur(12px);
@@ -169,40 +222,21 @@
             border-radius: 15px;
             border: 1px solid var(--glass-border);
             font-size: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-        }
+        .legend-item { display: flex; align-items: center; margin-bottom: 5px; }
+        .gradient-bar { width: 100px; height: 10px; background: linear-gradient(to right, blue, cyan, lime, yellow, red); border-radius: 5px; margin: 0 10px; }
 
-        .gradient-bar {
-            width: 100px;
-            height: 10px;
-            background: linear-gradient(to right, blue, cyan, lime, yellow, red);
-            border-radius: 5px;
-            margin: 0 10px;
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
     </style>
 </head>
 <body>
-    <div class="overlay">
-        <h1>Maharashtra MLA Heatmap</h1>
-        <p>Visualizing the density and distribution of 288 constituencies across the state based on the 2024 Election data.</p>
+    <button class="toggle-btn" id="toggle-analysis">📊 Show Analysis</button>
+
+    <div class="overlay" id="main-overlay">
+        <h1>MLA Analysis Dashboard</h1>
+        <p>Maharashtra Election 2024 Insight Explorer</p>
         
         <div class="filters">
             <div class="filter-group">
@@ -220,11 +254,40 @@
         <div class="stats">
             <div class="stat-card">
                 <span class="stat-value" id="count-value">288</span>
-                <span class="stat-label">Results</span>
+                <span class="stat-label">Seats</span>
             </div>
             <div class="stat-card">
-                <span class="stat-value">36</span>
+                <span class="stat-value" id="dist-count-value">36</span>
                 <span class="stat-label">Districts</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="analysis-panel" id="analysis-panel">
+        <h2>Extreme Detailed Analysis</h2>
+        
+        <div class="analysis-section">
+            <div class="analysis-card analysis-full-width">
+                <span class="analysis-label">Party Distribution (Top 5)</span>
+                <div class="chart-container">
+                    <canvas id="partyChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="analysis-card">
+                <span class="analysis-value" id="dominating-party">-</span>
+                <span class="analysis-label">Majority Party</span>
+            </div>
+            <div class="analysis-card">
+                <span class="analysis-value" id="avg-seats-dist">-</span>
+                <span class="analysis-label">Avg Seats/Dist</span>
+            </div>
+
+            <div class="analysis-card analysis-full-width">
+                <span class="analysis-label">Top Performance by District</span>
+                <div id="district-rankings" style="margin-top: 10px;">
+                    <!-- Ranks will be injected here -->
+                </div>
             </div>
         </div>
     </div>
@@ -243,7 +306,8 @@
     <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
     <script>
         const mapData = [{"lat": 21.787078569185798, "lng": 74.20207266715786, "name": "Akkalkuwa", "district": "NANDURBAR", "member": "Amshya Fulji Padvi", "party": "SHS"}, {"lat": 21.6384898735429, "lng": 74.40446224949933, "name": "Shahada", "district": "NANDURBAR", "member": "Rajesh Udesing Padvi", "party": "BJP"}, {"lat": 21.406113076850943, "lng": 74.44161736891763, "name": "Nandurbar", "district": "NANDURBAR", "member": "Dr.Vijaykumar Krushanrao Gavit", "party": "BJP"}, {"lat": 21.232165454749367, "lng": 73.90237210790302, "name": "Nawapur", "district": "NANDURBAR", "member": "Shirishkumar Surupsing Naik", "party": "INC"}, {"lat": 20.996299467056563, "lng": 74.23508546911096, "name": "Sakri", "district": "DHULE", "member": "Manjula Tulshiram Gavit", "party": "SHS"}, {"lat": 20.851373085487893, "lng": 74.78489062637689, "name": "Dhule Rural", "district": "DHULE", "member": "Raghavendra (Ramdada) Manohar Patil", "party": "BJP"}, {"lat": 20.90063266303179, "lng": 74.78710695753972, "name": "Dhule City", "district": "DHULE", "member": "Agrawal Anupbhaiyya Omprakash", "party": "BJP"}, {"lat": 21.2458442828432, "lng": 74.67223361358602, "name": "Sindkheda", "district": "DHULE", "member": "Jaykumar Jitendrasinh Rawal", "party": "BJP"}, {"lat": 21.44773416646391, "lng": 74.91499982189885, "name": "Shirpur", "district": "DHULE", "member": "Kashiram Vechan Pawara", "party": "BJP"}, {"lat": 21.333276595243365, "lng": 75.47474750473836, "name": "Chopda", "district": "JALGAON", "member": "Chandrakant Baliram Sonawane", "party": "SHS"}, {"lat": 21.304634211668695, "lng": 75.90830316685593, "name": "Raver", "district": "JALGAON", "member": "Amol Haribhau Jawale", "party": "BJP"}, {"lat": 20.99050918335104, "lng": 75.8311997081633, "name": "Bhusawal", "district": "JALGAON", "member": "Savkare Sanjay Waman", "party": "BJP"}, {"lat": 20.99773417034412, "lng": 75.57926584403235, "name": "Jalgaon City", "district": "JALGAON", "member": "Suresh Damu Bhole (Raju Mama)", "party": "BJP"}, {"lat": 21.002980843491986, "lng": 75.47784673777109, "name": "Jalgaon Rural", "district": "JALGAON", "member": "Gulabrao Raghunath Patil", "party": "SHS"}, {"lat": 21.043933441792976, "lng": 74.96829591991224, "name": "Amalner", "district": "JALGAON", "member": "Anil Bhaidas Patil", "party": "NCP"}, {"lat": 20.831843865089123, "lng": 75.15130023716554, "name": "Erandol", "district": "JALGAON", "member": "Amol Chimanrao Patil", "party": "SHS"}, {"lat": 20.516530272087856, "lng": 74.93799594893785, "name": "Chalisgaon", "district": "JALGAON", "member": "Mangesh Ramesh Chavan", "party": "BJP"}, {"lat": 20.562375600588158, "lng": 75.37399321609806, "name": "Pachora", "district": "JALGAON", "member": "Kishor Appa Patil", "party": "SHS"}, {"lat": 20.634725701000047, "lng": 75.79441174442785, "name": "Jamner", "district": "JALGAON", "member": "Girish Dattatray Mahajan", "party": "BJP"}, {"lat": 21.00732310485274, "lng": 76.16414516671223, "name": "Muktainagar", "district": "JALGAON", "member": "Chandrakant Nimba Patil", "party": "SHS"}, {"lat": 20.905979722653086, "lng": 76.21228004793933, "name": "Malkapur", "district": "BULDANA", "member": "Chainsukh Madanlal Sancheti", "party": "BJP"}, {"lat": 20.636931043440892, "lng": 76.04466185802775, "name": "Buldhana", "district": "BULDANA", "member": "Gaikwad Sanjay Rambhau", "party": "SHS"}, {"lat": 20.37311053638524, "lng": 76.087513056779, "name": "Chikhli", "district": "BULDANA", "member": "Mrs Shweta Vidyadhar Mahale", "party": "BJP"}, {"lat": 20.00248625991475, "lng": 76.1957509909966, "name": "Sindkhed Raja", "district": "BULDANA", "member": "Kayande Manoj Devanand", "party": "NCP"}, {"lat": 20.1157151376009, "lng": 76.62801335400438, "name": "Mehkar", "district": "BULDANA", "member": "Kharat Siddharth Rambhau", "party": "SHS-UBT"}, {"lat": 20.621999698444572, "lng": 76.66735685788905, "name": "Khamgaon", "district": "BULDANA", "member": "Akash Pandurang Fundkar", "party": "BJP"}, {"lat": 21.028189193807247, "lng": 76.64245020443043, "name": "Jalgaon (Jamod)", "district": "BULDANA", "member": "Kute Sanjay Shriram", "party": "BJP"}, {"lat": 21.125038193904615, "lng": 76.96974317362216, "name": "Akot", "district": "AKOLA", "member": "Prakash Gunwant Bharsakle", "party": "BJP"}, {"lat": 20.50105717647481, "lng": 76.84242545959415, "name": "Balapur", "district": "AKOLA", "member": "Nitin Bhikanrao Deshmukh", "party": "SHS-UBT"}, {"lat": 20.710436522442663, "lng": 76.99043192173778, "name": "Akola West", "district": "AKOLA", "member": "Sajid Khan Pathan", "party": "INC"}, {"lat": 20.834613339033766, "lng": 77.09358405217121, "name": "Akola East", "district": "AKOLA", "member": "Randhir Pralhadrao Sawarkar", "party": "BJP"}, {"lat": 20.70407255123452, "lng": 77.36228786668818, "name": "Murtizapur", "district": "AKOLA", "member": "Harish Marotiappa Pimple", "party": "BJP"}, {"lat": 20.17160966418189, "lng": 76.86259177895198, "name": "Risod", "district": "WASHIM", "member": "Ameet Subhashrao Zanak", "party": "INC"}, {"lat": 20.093258738137976, "lng": 77.25228835205814, "name": "Washim", "district": "WASHIM", "member": "Shyam Ramcharan Khode", "party": "BJP"}, {"lat": 20.39778495585105, "lng": 77.57965044891681, "name": "Karanja", "district": "WASHIM", "member": "Sai Prakash Dahake", "party": "BJP"}, {"lat": 20.684541729773922, "lng": 77.91316760014047, "name": "Dhamangaon Railway", "district": "AMRAVATI", "member": "Adsad Pratap Arunbhau", "party": "BJP"}, {"lat": 20.88797978489128, "lng": 77.63604586344037, "name": "Badnera", "district": "AMRAVATI", "member": "Ravi Gangadhar Rana", "party": "RYSP"}, {"lat": 20.956441252230817, "lng": 77.7786491534462, "name": "Amravati", "district": "AMRAVATI", "member": "Sulbha Sanjay Khodke", "party": "NCP"}, {"lat": 21.043673316827146, "lng": 77.84566095376759, "name": "Teosa", "district": "AMRAVATI", "member": "Rajesh Shriramji Wankhade", "party": "BJP"}, {"lat": 20.988048103726054, "lng": 77.28573722933231, "name": "Daryapur", "district": "AMRAVATI", "member": "Gajanan Motiram Lawate", "party": "SHS-UBT"}, {"lat": 21.462799616619698, "lng": 77.16722617962155, "name": "Melghat", "district": "AMRAVATI", "member": "Kewalram Tulsiram Kale", "party": "BJP"}, {"lat": 21.320695808283507, "lng": 77.66327648341162, "name": "Achalpur", "district": "AMRAVATI", "member": "Pravin Vasantrao Tayade", "party": "BJP"}, {"lat": 21.401003863962952, "lng": 78.19076844426918, "name": "Morshi", "district": "AMRAVATI", "member": "Umesh Alias Chandu Atmaramji Yawalkar", "party": "BJP"}, {"lat": 21.11710487047766, "lng": 78.32131885307484, "name": "Arvi", "district": "WARDHA", "member": "Sumit Wankhede", "party": "BJP"}, {"lat": 20.586834902831672, "lng": 78.48177720274136, "name": "Deoli", "district": "WARDHA", "member": "Rajesh Bhaurao Bakane", "party": "BJP"}, {"lat": 20.54890791320283, "lng": 78.91832143454421, "name": "Hinganghat", "district": "WARDHA", "member": "Samir Tryambakrao Kunawar", "party": "BJP"}, {"lat": 20.886285245640487, "lng": 78.7342178178817, "name": "Wardha", "district": "WARDHA", "member": "Dr. Pankaj Rajesh Bhoyar", "party": "BJP"}, {"lat": 21.290601876496357, "lng": 78.48909229213484, "name": "Katol", "district": "NAGPUR", "member": "Charansing Babulalji Thakur", "party": "BJP"}, {"lat": 21.45095756350168, "lng": 78.880123819744, "name": "Savner", "district": "NAGPUR", "member": "Dr Ashishrao Deshmukh", "party": "BJP"}, {"lat": 20.946532708116134, "lng": 78.87501976295648, "name": "Hingna", "district": "NAGPUR", "member": "Sameer Dattatraya Meghe", "party": "BJP"}, {"lat": 20.795719811469443, "lng": 79.34685140957332, "name": "Umred", "district": "NAGPUR", "member": "Sanjay Narayanrao Meshram", "party": "INC"}, {"lat": 21.11225650576779, "lng": 79.05850825170974, "name": "Nagpur South West", "district": "NAGPUR", "member": "Devendra Gangadhar Fadnavis", "party": "BJP"}, {"lat": 21.117100478538504, "lng": 79.11288461223084, "name": "Nagpur South", "district": "NAGPUR", "member": "Mohan Gopalrao Mate", "party": "BJP"}, {"lat": 21.148448493285755, "lng": 79.14313654281328, "name": "Nagpur East", "district": "NAGPUR", "member": "Khopde Krishna Pancham", "party": "BJP"}, {"lat": 21.14759557592962, "lng": 79.10320473601412, "name": "Nagpur Central", "district": "NAGPUR", "member": "Datke Pravin Prabhakarrao", "party": "BJP"}, {"lat": 21.167588479303326, "lng": 79.05474536147551, "name": "Nagpur West", "district": "NAGPUR", "member": "Vikas Pandurang Thakre", "party": "INC"}, {"lat": 21.186221398939445, "lng": 79.11244975121214, "name": "Nagpur North", "district": "NAGPUR", "member": "Dr Nitin Kashinath Raut", "party": "INC"}, {"lat": 21.208474397617195, "lng": 79.41459313090034, "name": "Kamthi", "district": "NAGPUR", "member": "Chandrashekhar Krushnarao Bawankule", "party": "BJP"}, {"lat": 21.550531843894525, "lng": 79.3490515958471, "name": "Ramtek", "district": "NAGPUR", "member": "Ashish Nandkishore Jaiswal(Vakil)", "party": "SHS"}, {"lat": 21.39324991348778, "lng": 79.67732900856102, "name": "Tumsar", "district": "BHANDARA", "member": "Karemore Raju Manikrao", "party": "NCP"}, {"lat": 20.968109140543948, "lng": 79.59451572048913, "name": "Bhandara", "district": "BHANDARA", "member": "Bhondekar Narendra Bhojraj", "party": "SHS"}, {"lat": 20.95410148633528, "lng": 79.91122116623458, "name": "Sakoli", "district": "BHANDARA", "member": "Nanabhau Falgunrao Patole", "party": "INC"}, {"lat": 20.816633069027016, "lng": 80.12126378150485, "name": "Arjuni Morgaon", "district": "GONDIYA", "member": "Badole Rajkumar Sudam", "party": "NCP"}, {"lat": 21.367765053017454, "lng": 79.94697770059857, "name": "Tirora", "district": "GONDIYA", "member": "Vijay Bharatlal Rahangdale", "party": "BJP"}, {"lat": 21.53908228569089, "lng": 80.22898955268528, "name": "Gondiya", "district": "GONDIYA", "member": "Agrawal Vinod", "party": "BJP"}, {"lat": 21.24436816804924, "lng": 80.45108145798768, "name": "Amgaon", "district": "GONDIYA", "member": "Sanjay Puram", "party": "BJP"}, {"lat": 20.590715889677757, "lng": 80.26220324336317, "name": "Armori", "district": "GADCHIROLI", "member": "Ramdas Maluji Masram", "party": "INC"}, {"lat": 19.98348550264724, "lng": 80.00953482060582, "name": "Gadchiroli", "district": "GADCHIROLI", "member": "Dr. Milind Ramji Narote", "party": "BJP"}, {"lat": 19.366524025248037, "lng": 80.44192644305902, "name": "Aheri", "district": "GADCHIROLI", "member": "Atram Dharamraobaba Bhagwantrao", "party": "NCP"}, {"lat": 19.656890304723873, "lng": 79.25682839114273, "name": "Rajura", "district": "CHANDRAPUR", "member": "Deorao Vithoba Bhongle", "party": "BJP"}, {"lat": 19.956810601130844, "lng": 79.16616087162026, "name": "Chandrapur", "district": "CHANDRAPUR", "member": "Jorgewar Kishor Gajanan", "party": "BJP"}, {"lat": 19.976554130898013, "lng": 79.6173813853164, "name": "Ballarpur", "district": "CHANDRAPUR", "member": "Mungantiwar Sudhir Sacchidanand", "party": "BJP"}, {"lat": 20.151555903460974, "lng": 79.85481756169014, "name": "Brahmapuri", "district": "CHANDRAPUR", "member": "Vijay Namdeorao Wadettiwar", "party": "INC"}, {"lat": 20.61446287231292, "lng": 79.52467383086528, "name": "Chimur", "district": "CHANDRAPUR", "member": "Banti Bhangdiya", "party": "BJP"}, {"lat": 20.28627131494232, "lng": 78.98632100271571, "name": "Warora", "district": "YAVATMAL", "member": "Karan Sanjay Deotale", "party": "BJP"}, {"lat": 19.978909088691875, "lng": 78.89910452101864, "name": "Wani", "district": "YAVATMAL", "member": "Derkar Sanjay Nilkanthrao", "party": "SHS-UBT"}, {"lat": 20.497851843352763, "lng": 78.36991491466023, "name": "Ralegaon", "district": "YAVATMAL", "member": "Prof. Dr. Ashok Ramaji Wooike", "party": "BJP"}, {"lat": 20.321630771384996, "lng": 78.08639743483688, "name": "Yavatmal", "district": "YAVATMAL", "member": "Anil Alias Balasaheb Shankarrao Mangulkar", "party": "INC"}, {"lat": 20.423269188690934, "lng": 77.73361996630891, "name": "Digras", "district": "YAVATMAL", "member": "Rathod Sanjay Dulichand", "party": "SHS"}, {"lat": 19.949454385231196, "lng": 78.24423685535433, "name": "Arni", "district": "YAVATMAL", "member": "Raju Narayan Todsam", "party": "BJP"}, {"lat": 19.908194685023446, "lng": 77.41647366555813, "name": "Pusad", "district": "YAVATMAL", "member": "Indranil Manohar Naik", "party": "NCP"}, {"lat": 19.614702489279516, "lng": 77.85052094784336, "name": "Umarkhed", "district": "YAVATMAL", "member": "Kisan Maroti Wankhede", "party": "BJP"}, {"lat": 19.64974054376209, "lng": 78.11115788508212, "name": "Kinwat", "district": "NANDED", "member": "Bhimrao Ramji Keram", "party": "BJP"}, {"lat": 19.5220032762372, "lng": 77.67715700316619, "name": "Hadgaon", "district": "NANDED", "member": "Kohlikar Baburao Kadam", "party": "SHS"}, {"lat": 19.203147645704036, "lng": 77.64106592441658, "name": "Bhokar", "district": "NANDED", "member": "Chavan Sreejaya Ashokrao", "party": "BJP"}, {"lat": 19.207269152268946, "lng": 77.24366284621436, "name": "Nanded North", "district": "NANDED", "member": "Balaji Devidasrao Kalyankar", "party": "SHS"}, {"lat": 19.11060428175705, "lng": 77.28351408374145, "name": "Nanded South", "district": "NANDED", "member": "Anand Shankar Tidke", "party": "SHS"}, {"lat": 18.92082638063597, "lng": 77.14137119813721, "name": "Loha", "district": "NANDED", "member": "Prataprao Patil Chikhalikar", "party": "NCP"}, {"lat": 18.927545013445602, "lng": 77.7243698347097, "name": "Naigaon", "district": "NANDED", "member": "Rajesh Sambhajirao Pawar", "party": "BJP"}, {"lat": 18.529208023427554, "lng": 77.59901778587809, "name": "Deglur", "district": "NANDED", "member": "Antapurkar Jitesh Raosaheb", "party": "BJP"}, {"lat": 18.560904931237342, "lng": 77.28346579990428, "name": "Mukhed", "district": "NANDED", "member": "Tushar Govindrao Rathod", "party": "BJP"}, {"lat": 19.381398851576837, "lng": 77.038845086692, "name": "Basmath", "district": "HINGOLI", "member": "Chandrakant Alias Rajubhaiya Ramakant Navghare", "party": "NCP"}, {"lat": 19.753306473903727, "lng": 77.34852563320723, "name": "Kalamnuri", "district": "HINGOLI", "member": "Bangar Santosh Laxmanrao", "party": "SHS"}, {"lat": 19.873519561005022, "lng": 76.92776312044033, "name": "Hingoli", "district": "HINGOLI", "member": "Mutkule Tanhaji Sakharamji", "party": "BJP"}, {"lat": 19.630484974164347, "lng": 76.69788469783335, "name": "Jintur", "district": "PARBHANI", "member": "Bordikar Meghna Deepak Sakore", "party": "BJP"}, {"lat": 19.314313365970897, "lng": 76.85364745211439, "name": "Parbhani", "district": "PARBHANI", "member": "Dr. Rahul Vedprakash Patil", "party": "SHS-UBT"}, {"lat": 19.0085278706035, "lng": 76.91888844159021, "name": "Gangakhed", "district": "PARBHANI", "member": "Gutte Ratnakar Manikrao", "party": "RSP"}, {"lat": 19.14856876065944, "lng": 76.48706154893198, "name": "Pathri", "district": "PARBHANI", "member": "Rajesh Uttamrao Vitekar", "party": "NCP"}, {"lat": 19.765546062797405, "lng": 76.35520968793529, "name": "Partur", "district": "JALNA", "member": "Babanrao Dattatray Yadav (Lonikar)", "party": "BJP"}, {"lat": 19.54133969307807, "lng": 75.91753037221241, "name": "Ghansawangi", "district": "JALNA", "member": "Udhan Hikmat Baliram", "party": "SHS"}, {"lat": 19.853800789602943, "lng": 76.01725691936184, "name": "Jalna", "district": "JALNA", "member": "Arjun Panditrao Khotkar", "party": "SHS"}, {"lat": 19.934275833831464, "lng": 75.70385080215117, "name": "Badnapur", "district": "JALNA", "member": "Kuche Narayan Tilakchand", "party": "BJP"}, {"lat": 20.34354488255346, "lng": 75.90982338017908, "name": "Bhokardan", "district": "JALNA", "member": "Danve Santosh Raosaheb", "party": "BJP"}, {"lat": 20.500185217123185, "lng": 75.62943584316642, "name": "Sillod", "district": "AURANGABAD", "member": "Abdul Sattar", "party": "SHS"}, {"lat": 20.31594804907596, "lng": 75.17361664659654, "name": "Kannad", "district": "AURANGABAD", "member": "Ranjanatai (Sanjana) Harshvardhan Jadhav", "party": "SHS"}, {"lat": 20.010981963035682, "lng": 75.54993580967331, "name": "Phulambri", "district": "AURANGABAD", "member": "Anuradha Atul Chavan", "party": "BJP"}, {"lat": 19.916127272291703, "lng": 75.3402670428473, "name": "Aurangabad Central", "district": "AURANGABAD", "member": "Jaiswal Pradeep Shivnarayan", "party": "SHS"}, {"lat": 19.86286082683814, "lng": 75.3020387570429, "name": "Aurangabad West", "district": "AURANGABAD", "member": "Sanjay Pandurang Shirsat", "party": "SHS"}, {"lat": 19.880532412403554, "lng": 75.3728020092106, "name": "Aurangabad East", "district": "AURANGABAD", "member": "Atul Moreshwar Save", "party": "BJP"}, {"lat": 19.50452625456152, "lng": 75.38178806664038, "name": "Paithan", "district": "AURANGABAD", "member": "Bhumre Vilas Sandipanrao", "party": "SHS"}, {"lat": 19.80630364624714, "lng": 75.1485546781369, "name": "Gangapur", "district": "AURANGABAD", "member": "Bumb Prashant Bansilal", "party": "BJP"}, {"lat": 19.961332594143325, "lng": 74.77101238681706, "name": "Vaijapur", "district": "AURANGABAD", "member": "Bornare (Sir) Ramesh Nanasaheb", "party": "SHS"}, {"lat": 20.37062988503578, "lng": 74.75562484345582, "name": "Nandgaon", "district": "NASHIK", "member": "Suhas (Aanna) Dwarkanath Kande", "party": "SHS"}, {"lat": 20.55091061865794, "lng": 74.54907431994742, "name": "Malegaon Central", "district": "NASHIK", "member": "Mufti Mohammad Ismail Abdul Khalique", "party": "AIMIM"}, {"lat": 20.689175425424043, "lng": 74.57888633114595, "name": "Malegaon Outer", "district": "NASHIK", "member": "Dadaji Dagdu Bhuse", "party": "SHS"}, {"lat": 20.77111013849436, "lng": 74.13217652746417, "name": "Baglan", "district": "NASHIK", "member": "Dilip Manglu Borse", "party": "BJP"}, {"lat": 20.551939944902028, "lng": 73.60491069004001, "name": "Kalwan", "district": "NASHIK", "member": "Nitinbhau Arjun (A.T.) Pawar", "party": "NCP"}, {"lat": 20.35871158410233, "lng": 74.20830484354919, "name": "Chandvad", "district": "NASHIK", "member": "Dr.Aher Rahul Daulatrao", "party": "BJP"}, {"lat": 20.034790243805908, "lng": 74.4814674171434, "name": "Yevla", "district": "NASHIK", "member": "Chhagan Bhujbal", "party": "NCP"}, {"lat": 19.75642289569349, "lng": 74.07048151168374, "name": "Sinnar", "district": "NASHIK", "member": "Adv. Kokate Manikrao Shivaji", "party": "NCP"}, {"lat": 20.07456350436244, "lng": 74.0771788641343, "name": "Niphad", "district": "NASHIK", "member": "Bankar Diliprao Shankarrao", "party": "NCP"}, {"lat": 20.26783133400295, "lng": 73.53222552134181, "name": "Dindori", "district": "NASHIK", "member": "Narahari Sitaram Zirwal", "party": "NCP"}, {"lat": 20.02480172600003, "lng": 73.83803288663643, "name": "Nashik East", "district": "NASHIK", "member": "Adv.Rahul Uttamrao Dhikale", "party": "BJP"}, {"lat": 19.995212265859692, "lng": 73.78705210401762, "name": "Nashik Central", "district": "NASHIK", "member": "Devyani Suhas Pharande", "party": "BJP"}, {"lat": 19.990440801402354, "lng": 73.73125517088515, "name": "Nashik West", "district": "NASHIK", "member": "Hiray Seema Mahesh", "party": "BJP"}, {"lat": 19.991120834196764, "lng": 73.74316995558789, "name": "Deolali", "district": "NASHIK", "member": "Ahire Saroj Babulal", "party": "NCP"}, {"lat": 19.948938517573765, "lng": 73.45136083783501, "name": "Igatpuri", "district": "NASHIK", "member": "Khoskar Hiraman Bhika", "party": "NCP"}, {"lat": 20.0629134914202, "lng": 72.8397353268455, "name": "Dahanu", "district": "THANE", "member": "Vinod Bhiva Nikole", "party": "CPI(M)"}, {"lat": 19.93973271828572, "lng": 73.26191347148271, "name": "Vikramgad", "district": "THANE", "member": "Bhoye Harishchandra Sakharam", "party": "BJP"}, {"lat": 19.823262958374457, "lng": 72.73268020036254, "name": "Palghar", "district": "THANE", "member": "Gavit Rajendra Dhedya", "party": "SHS"}, {"lat": 19.593568007352403, "lng": 72.79673397285076, "name": "Boisar", "district": "THANE", "member": "Vilas Sukur Tare", "party": "SHS"}, {"lat": 19.469131601049064, "lng": 72.88541965890204, "name": "Nalasopara", "district": "THANE", "member": "Rajan Balkrishna Naik", "party": "BJP"}, {"lat": 19.404037477912272, "lng": 72.78179485161984, "name": "Vasai", "district": "THANE", "member": "Sneha Dube Pandit", "party": "BJP"}, {"lat": 19.481562785646016, "lng": 73.11144562498319, "name": "Bhiwandi Rural", "district": "THANE", "member": "Shantaram Tukaram More", "party": "SHS"}, {"lat": 19.543900864700184, "lng": 73.48739400507124, "name": "Shahapur", "district": "THANE", "member": "Daulat Bhika Daroda", "party": "NCP"}, {"lat": 19.3521262380127, "lng": 73.06980323108868, "name": "Bhiwandi West", "district": "THANE", "member": "Choughule Mahesh Prabhakar", "party": "BJP"}, {"lat": 19.356204601646507, "lng": 73.11464181236371, "name": "Bhiwandi East", "district": "THANE", "member": "Rais Kasam Shaikh", "party": "SP"}, {"lat": 19.286335364595296, "lng": 73.1820892358691, "name": "Kalyan West", "district": "THANE", "member": "Vishwanath Atmaram Bhoir", "party": "SHS"}, {"lat": 19.237932281127538, "lng": 73.53833379379643, "name": "Murbad", "district": "THANE", "member": "Kisan Shankar Kathore", "party": "BJP"}, {"lat": 19.21429744673534, "lng": 73.19907778747064, "name": "Ambernath", "district": "THANE", "member": "Dr. Balaji Pralhad Kinikar", "party": "SHS"}, {"lat": 19.25020772185004, "lng": 73.19359927315006, "name": "Ulhasnagar", "district": "THANE", "member": "Ailani Kumar Uttamchand", "party": "BJP"}, {"lat": 19.1311494089751, "lng": 73.14875298133248, "name": "Kalyan East", "district": "THANE", "member": "Sulbha Ganpat Gaikwad", "party": "BJP"}, {"lat": 19.235155084750048, "lng": 73.08332336095005, "name": "Dombivali", "district": "THANE", "member": "Chavan Ravindra Dattatray", "party": "BJP"}, {"lat": 19.130595176181544, "lng": 73.0837335768768, "name": "Kalyan Rural", "district": "THANE", "member": "Rajesh Govardhan More", "party": "SHS"}, {"lat": 19.272028754722978, "lng": 72.81975646601275, "name": "Mira Bhayandar", "district": "THANE", "member": "Narendra Mehta", "party": "BJP"}, {"lat": 19.263547243761405, "lng": 72.9168029799887, "name": "Ovala - Majiwada", "district": "THANE", "member": "Pratap Baburao Sarnaik", "party": "SHS"}, {"lat": 19.190833955932803, "lng": 72.95427889547487, "name": "Kopri - Pachpakhadi", "district": "THANE", "member": "Eknath Sambhaji Shinde", "party": "SHS"}, {"lat": 19.252799473272773, "lng": 72.9738635535758, "name": "Thane", "district": "THANE", "member": "Sanjay Mukund Kelkar", "party": "BJP"}, {"lat": 19.20142509951287, "lng": 72.99466489858979, "name": "Mumbra - Kalwa", "district": "THANE", "member": "Awhad Jitendra Satish", "party": "NCP(SP)"}, {"lat": 19.138820555052668, "lng": 72.99511156086022, "name": "Airoli", "district": "THANE", "member": "Ganesh Ramchandra Naik", "party": "BJP"}, {"lat": 19.053079694024927, "lng": 73.01253153973133, "name": "Belapur", "district": "THANE", "member": "Manda Vijay Mhatre", "party": "BJP"}, {"lat": 19.222585859434627, "lng": 72.78806932263196, "name": "Borivali", "district": "MUMBAI (SUBURBAN)", "member": "Sanjay Upadhyay", "party": "BJP"}, {"lat": 19.25797759062731, "lng": 72.84980136340006, "name": "Dahisar", "district": "MUMBAI (SUBURBAN)", "member": "Chaudhary Manisha Ashok", "party": "BJP"}, {"lat": 19.229163785936212, "lng": 72.89537123853908, "name": "Magathane", "district": "MUMBAI (SUBURBAN)", "member": "Prakash Surve", "party": "SHS"}, {"lat": 19.179704180529143, "lng": 72.93722189795771, "name": "Mulund", "district": "MUMBAI (SUBURBAN)", "member": "Mihir Kotecha", "party": "BJP"}, {"lat": 19.107467296927457, "lng": 72.92971363491135, "name": "Vikhroli", "district": "MUMBAI (SUBURBAN)", "member": "Sunil Rajaram Raut", "party": "SHS-UBT"}, {"lat": 19.124850920847393, "lng": 72.93043711153898, "name": "Bhandup West", "district": "MUMBAI (SUBURBAN)", "member": "Ashok Dharmaraj Patil", "party": "SHS"}, {"lat": 19.13698621275314, "lng": 72.87469081448155, "name": "Jogeshwari East", "district": "MUMBAI (SUBURBAN)", "member": "Anant (Bala) B. Nar", "party": "SHS-UBT"}, {"lat": 19.173429264230816, "lng": 72.88084101200006, "name": "Dindoshi", "district": "MUMBAI (SUBURBAN)", "member": "Sunil Waman Prabhu", "party": "SHS-UBT"}, {"lat": 19.19106845282931, "lng": 72.86099708253666, "name": "Kandivali East", "district": "MUMBAI (SUBURBAN)", "member": "Atul Bhatkhalkar", "party": "BJP"}, {"lat": 19.197550936368472, "lng": 72.81758491513163, "name": "Charkop", "district": "MUMBAI (SUBURBAN)", "member": "Yogesh Sagar", "party": "BJP"}, {"lat": 19.155592458803945, "lng": 72.79202081144464, "name": "Malad West", "district": "MUMBAI (SUBURBAN)", "member": "Aslam Ramjanali Shaikh", "party": "INC"}, {"lat": 19.154795951868472, "lng": 72.83877196665796, "name": "Goregaon", "district": "MUMBAI (SUBURBAN)", "member": "Vidya Jaiprakash Thakur", "party": "BJP"}, {"lat": 19.131263134822614, "lng": 72.82046573583875, "name": "Versova", "district": "MUMBAI (SUBURBAN)", "member": "Haroon Khan", "party": "SHS-UBT"}, {"lat": 19.09761551658093, "lng": 72.82587824262606, "name": "Andheri West", "district": "MUMBAI (SUBURBAN)", "member": "Ameet Bhaskar Satam", "party": "BJP"}, {"lat": 19.113120565370835, "lng": 72.87478857158435, "name": "Andheri East", "district": "MUMBAI (SUBURBAN)", "member": "Murji Patel (Kaka)", "party": "SHS"}, {"lat": 19.0889798962632, "lng": 72.86033065039481, "name": "Vile Parle", "district": "MUMBAI (SUBURBAN)", "member": "Alavani Parag", "party": "BJP"}, {"lat": 19.092419568157926, "lng": 72.896706940579, "name": "Chandivali", "district": "MUMBAI (SUBURBAN)", "member": "Dilip Bhausaheb Lande", "party": "SHS"}, {"lat": 19.081127918842142, "lng": 72.91039085165794, "name": "Ghatkopar West", "district": "MUMBAI (SUBURBAN)", "member": "Ram Kadam", "party": "BJP"}, {"lat": 19.071485042996297, "lng": 72.9267344458989, "name": "Ghatkopar East", "district": "MUMBAI (SUBURBAN)", "member": "Parag Shah", "party": "BJP"}, {"lat": 19.049023070179892, "lng": 72.93660937898566, "name": "Mankhurd Shivaji Nagar", "district": "MUMBAI (SUBURBAN)", "member": "Abu Asim Azmi", "party": "SP"}, {"lat": 19.016953854087827, "lng": 72.92517770079395, "name": "Anushakti Nagar", "district": "MUMBAI (SUBURBAN)", "member": "Sana Malik", "party": "NCP"}, {"lat": 19.016825977434, "lng": 72.8926119292453, "name": "Chembur", "district": "MUMBAI (SUBURBAN)", "member": "Tukaram Ramkrushna Kate", "party": "SHS"}, {"lat": 19.0558997626667, "lng": 72.8927547285943, "name": "Kurla", "district": "MUMBAI (SUBURBAN)", "member": "Kudalkar Mangesh", "party": "SHS"}, {"lat": 19.071044541614068, "lng": 72.87047532929829, "name": "Kalina", "district": "MUMBAI (SUBURBAN)", "member": "Sanjay Govind Potnis", "party": "SHS-UBT"}, {"lat": 19.05519987238601, "lng": 72.86262318010532, "name": "Vandre East", "district": "MUMBAI (SUBURBAN)", "member": "Varun Satish Sardesai", "party": "SHS-UBT"}, {"lat": 19.054545354454895, "lng": 72.82646315004862, "name": "Vandre West", "district": "MUMBAI (SUBURBAN)", "member": "Adv. Ashish Shelar", "party": "BJP"}, {"lat": 19.04475319274742, "lng": 72.84566869351586, "name": "Dharavi", "district": "MUMBAI", "member": "Dr. Gaikwad Jyoti Eknath", "party": "INC"}, {"lat": 19.035788448921092, "lng": 72.86908018085973, "name": "Sion Koliwada", "district": "MUMBAI", "member": "Captain R Tamil Selvan", "party": "BJP"}, {"lat": 19.013869219857185, "lng": 72.85451716747329, "name": "Wadala", "district": "MUMBAI", "member": "Kalidas Nilkanth Kolambkar", "party": "BJP"}, {"lat": 19.028800006343793, "lng": 72.8340879487902, "name": "Mahim", "district": "MUMBAI", "member": "Mahesh Baliram Sawant", "party": "SHS-UBT"}, {"lat": 19.00795974911446, "lng": 72.81596071170766, "name": "Worli", "district": "MUMBAI", "member": "Aditya Uddhav Thackeray", "party": "SHS-UBT"}, {"lat": 18.995272004654367, "lng": 72.84392391001244, "name": "Shivadi", "district": "MUMBAI", "member": "Ajay Vinayak Choudhari", "party": "SHS-UBT"}, {"lat": 18.976058978421094, "lng": 72.83901625596849, "name": "Byculla", "district": "MUMBAI", "member": "Manoj Pandurang Jamsutkar", "party": "SHS-UBT"}, {"lat": 18.96036494186279, "lng": 72.80732384168634, "name": "Malabar Hill", "district": "MUMBAI", "member": "Mangal Prabhat Lodha", "party": "BJP"}, {"lat": 18.958185042943224, "lng": 72.83143985423868, "name": "Mumbadevi", "district": "MUMBAI", "member": "Amin Patel", "party": "INC"}, {"lat": 18.930646104522765, "lng": 72.8278862738637, "name": "Colaba", "district": "MUMBAI", "member": "Adv Rahul Suresh Narwekar", "party": "BJP"}, {"lat": 19.076186856942627, "lng": 73.13953604185546, "name": "Panvel", "district": "RAIGARH", "member": "Prashant Ramsheth Thakur", "party": "BJP"}, {"lat": 18.958519130279907, "lng": 73.44275782713754, "name": "Karjat", "district": "RAIGARH", "member": "Thorve Mahendra Sadashiv", "party": "SHS"}, {"lat": 18.926425852623144, "lng": 73.00503094042539, "name": "Uran", "district": "RAIGARH", "member": "Mahesh Baldi", "party": "BJP"}, {"lat": 18.581478802076877, "lng": 73.24217101021998, "name": "Pen", "district": "RAIGARH", "member": "Ravisheth Patil", "party": "BJP"}, {"lat": 18.517273577606364, "lng": 72.93146731448904, "name": "Alibag", "district": "RAIGARH", "member": "Mahendra Hari Dalvi", "party": "SHS"}, {"lat": 18.197511345052376, "lng": 73.06282603578332, "name": "Shrivardhan", "district": "RAIGARH", "member": "Aditi Sunil Tatkare", "party": "NCP"}, {"lat": 18.16513107971851, "lng": 73.44406845531746, "name": "Mahad", "district": "RAIGARH", "member": "Gogawale Bharat Maruti", "party": "SHS"}, {"lat": 19.224905061155418, "lng": 74.00057369596944, "name": "Junnar", "district": "PUNE", "member": "Sharaddada Bhimaji Sonawane", "party": "IND"}, {"lat": 19.038644956249705, "lng": 73.84938057829996, "name": "Ambegaon", "district": "PUNE", "member": "Dilip Dattatray Walse Patil", "party": "NCP"}, {"lat": 18.932997371697773, "lng": 73.67201764529675, "name": "Khed Alandi", "district": "PUNE", "member": "Babaji Ramchandra Kale", "party": "SHS-UBT"}, {"lat": 18.684254746322136, "lng": 74.36656251708528, "name": "Shirur", "district": "PUNE", "member": "Dnyaneshwar Alias Mauli Aba Katke", "party": "NCP"}, {"lat": 18.44382105147862, "lng": 74.57292985109005, "name": "Daund", "district": "PUNE", "member": "Kul Rahul Subhashrao", "party": "BJP"}, {"lat": 18.0319102081231, "lng": 74.93183442571619, "name": "Indapur", "district": "PUNE", "member": "Dattatraya Vithoba Bharane", "party": "NCP"}, {"lat": 18.115830506311802, "lng": 74.4686507943712, "name": "Baramati", "district": "PUNE", "member": "Ajit Anantrao Pawar", "party": "NCP"}, {"lat": 18.29706477720837, "lng": 74.02128758527094, "name": "Purandar", "district": "PUNE", "member": "Vijaybapu Shivtare", "party": "SHS"}, {"lat": 18.320804255708275, "lng": 73.55549798150902, "name": "Bhor", "district": "PUNE", "member": "Shankar Hiraman Mandekar", "party": "NCP"}, {"lat": 18.83394394934448, "lng": 73.45680032919643, "name": "Maval", "district": "PUNE", "member": "Sunil Shankarrao Shelke", "party": "NCP"}, {"lat": 18.597862096838128, "lng": 73.82668859040002, "name": "Chinchwad", "district": "PUNE", "member": "Jagtap Shankar Pandurang", "party": "BJP"}, {"lat": 18.68331725016383, "lng": 73.77617199342251, "name": "Pimpri", "district": "PUNE", "member": "Anna Dadu Bansode", "party": "NCP"}, {"lat": 18.6461952125676, "lng": 73.84621823433338, "name": "Bhosari", "district": "PUNE", "member": "Mahesh (Dada) Kisan Landge", "party": "BJP"}, {"lat": 18.592520803064552, "lng": 73.91987261268554, "name": "Vadgaon Sheri", "district": "PUNE", "member": "Bapusaheb Tukaram Pathare", "party": "NCP(SP)"}, {"lat": 18.546147402371712, "lng": 73.84575506941596, "name": "Shivajinagar", "district": "PUNE", "member": "Siddharth Anil Shirole", "party": "BJP"}, {"lat": 18.53881776765252, "lng": 73.79805011102843, "name": "Kothrud", "district": "PUNE", "member": "Chandrakant (Dada) Bachhu Patil", "party": "BJP"}, {"lat": 18.416971647132883, "lng": 73.74923772018822, "name": "Khadakwasala", "district": "PUNE", "member": "Bhimrao Dhondiba Tapkir", "party": "BJP"}, {"lat": 18.49523845275388, "lng": 73.84820561824621, "name": "Parvati", "district": "PUNE", "member": "Madhuri Satish Misal", "party": "BJP"}, {"lat": 18.46326546533338, "lng": 73.89139109410189, "name": "Hadapsar", "district": "PUNE", "member": "Chetan Vitthal Tupe", "party": "NCP"}, {"lat": 18.50691439759601, "lng": 73.93068656369704, "name": "Pune Cantonment", "district": "PUNE", "member": "Kamble Sunil Dyandev", "party": "BJP"}, {"lat": 18.52261642619052, "lng": 73.86336632753972, "name": "Kasba Peth", "district": "PUNE", "member": "Hemant Narayan Rasane", "party": "BJP"}, {"lat": 19.490241644088897, "lng": 73.89026947617702, "name": "Akole", "district": "AHMADNAGAR", "member": "Dr. Kiran Yamaji Lahamate", "party": "NCP"}, {"lat": 19.474894465676588, "lng": 74.22717390756499, "name": "Sangamner", "district": "AHMADNAGAR", "member": "Amol Dhondiba Khatal", "party": "SHS"}, {"lat": 19.68123689620523, "lng": 74.30386935328491, "name": "Shirdi", "district": "AHMADNAGAR", "member": "Patil Vikhe Radhakrushna Eknathrao", "party": "BJP"}, {"lat": 19.897613311709637, "lng": 74.42154131567989, "name": "Kopargaon", "district": "AHMADNAGAR", "member": "Ashutosh Ashokrao Kale", "party": "NCP"}, {"lat": 19.648952992463958, "lng": 74.71191274890326, "name": "Shrirampur", "district": "AHMADNAGAR", "member": "Ogale Hemant Bhujangrao", "party": "INC"}, {"lat": 19.57320745770884, "lng": 75.0280787249661, "name": "Nevasa", "district": "AHMADNAGAR", "member": "Vitthal Vakilrao Langhe", "party": "SHS"}, {"lat": 19.227342891000145, "lng": 75.34357753987784, "name": "Shevgaon", "district": "AHMADNAGAR", "member": "Monica Rajeev Rajale", "party": "BJP"}, {"lat": 19.199583771831602, "lng": 74.88657145538768, "name": "Rahuri", "district": "AHMADNAGAR", "member": "Kardile Shivaji Bhanudas", "party": "BJP"}, {"lat": 19.057297317114532, "lng": 74.31241229260226, "name": "Parner", "district": "AHMADNAGAR", "member": "Kashinath Mahadu Date Sir", "party": "NCP"}, {"lat": 19.087876435938032, "lng": 74.74110522644195, "name": "Ahmednagar City", "district": "AHMADNAGAR", "member": "Sangram Arunkaka Jagtap", "party": "NCP"}, {"lat": 18.802451562970028, "lng": 74.66399495406003, "name": "Shrigonda", "district": "AHMADNAGAR", "member": "Pachpute Vikram Babanrao", "party": "BJP"}, {"lat": 18.632638825376763, "lng": 75.2569790647589, "name": "Karjat Jamkhed", "district": "AHMADNAGAR", "member": "Rohit Pawar", "party": "NCP(SP)"}, {"lat": 19.297515475563756, "lng": 75.66101802976344, "name": "Georai", "district": "BID", "member": "Vijaysinh Shivajirao Pandit", "party": "NCP"}, {"lat": 19.066540233402417, "lng": 76.17583978178996, "name": "Majalgaon", "district": "BID", "member": "Prakash (Dada) Sunadarrao Solanke", "party": "NCP"}, {"lat": 18.998287461204075, "lng": 75.65154937945849, "name": "Beed", "district": "BID", "member": "Sandeep Ravindra Kshirsagar", "party": "NCP(SP)"}, {"lat": 19.011012085997052, "lng": 75.28230257366572, "name": "Ashti", "district": "BID", "member": "Dhas Suresh Ramchandra", "party": "BJP"}, {"lat": 18.6724161215332, "lng": 75.88525376993917, "name": "Kaij", "district": "BID", "member": "Namita Akshay Mundada", "party": "BJP"}, {"lat": 18.843885754173172, "lng": 76.49724250073466, "name": "Parli", "district": "BID", "member": "Dhananjay Panditrao Munde", "party": "NCP"}, {"lat": 18.46247217763383, "lng": 76.4723560909388, "name": "Latur Rural", "district": "LATUR", "member": "Ramesh Kashiram Karad", "party": "BJP"}, {"lat": 18.424434430317515, "lng": 76.55909559812314, "name": "Latur City", "district": "LATUR", "member": "Amit Vilasrao Deshmukh", "party": "INC"}, {"lat": 18.667263805010926, "lng": 76.87814815778991, "name": "Ahmadpur", "district": "LATUR", "member": "Babasaheb Mohanrao Patil", "party": "NCP"}, {"lat": 18.481010799071527, "lng": 77.2026019704434, "name": "Udgir", "district": "LATUR", "member": "Sanjay Baburao Bansode", "party": "NCP"}, {"lat": 18.145869077566164, "lng": 76.95685447398822, "name": "Nilanga", "district": "LATUR", "member": "Nilangekar Sambhaji Diliprao Patil", "party": "BJP"}, {"lat": 18.105747830654487, "lng": 76.58943551338534, "name": "Ausa", "district": "LATUR", "member": "Abhimanyu Dattatray Pawar", "party": "BJP"}, {"lat": 17.83174129126242, "lng": 76.58689636219725, "name": "Umarga", "district": "OSMANABAD", "member": "Pravin Virbhadrayya Swami (Sir)", "party": "SHS-UBT"}, {"lat": 17.935660624504433, "lng": 76.1293855964361, "name": "Tuljapur", "district": "OSMANABAD", "member": "Ranajagjitsinha Padmasinha Patil", "party": "BJP"}, {"lat": 18.36843404226185, "lng": 76.03867324970385, "name": "Osmanabad", "district": "OSMANABAD", "member": "Kailas Balasaheb Ghadge Patil", "party": "SHS-UBT"}, {"lat": 18.550677529328407, "lng": 75.60131896467793, "name": "Paranda", "district": "OSMANABAD", "member": "Prof.Dr.Tanaji Jayawant Sawant", "party": "SHS"}, {"lat": 18.30185335354376, "lng": 75.12763526258438, "name": "Karmala", "district": "SOLAPUR", "member": "Narayan (Aba) Govindrao Patil", "party": "NCP(SP)"}, {"lat": 17.946221444651712, "lng": 75.28779180996135, "name": "Madha", "district": "SOLAPUR", "member": "Abhijeet Dhananjay Patil", "party": "NCP(SP)"}, {"lat": 18.173469069590578, "lng": 75.82679896848285, "name": "Barshi", "district": "SOLAPUR", "member": "Dilip Gangadhar Sopal", "party": "SHS-UBT"}, {"lat": 17.777514871089622, "lng": 75.70240732618834, "name": "Mohol", "district": "SOLAPUR", "member": "Khare Raju Dnyanu", "party": "NCP(SP)"}, {"lat": 17.715707199721475, "lng": 75.87429415731432, "name": "Solapur City North", "district": "SOLAPUR", "member": "Deshmukh Vijay Sidramappa", "party": "BJP"}, {"lat": 17.639492815166708, "lng": 75.91248833195839, "name": "Solapur City Central", "district": "SOLAPUR", "member": "Devendra Rajesh Kothe", "party": "BJP"}, {"lat": 17.557838346571213, "lng": 76.19851625181633, "name": "Akkalkot", "district": "SOLAPUR", "member": "Kalyanshetti Sachin Panchappa", "party": "BJP"}, {"lat": 17.523358087762873, "lng": 75.84050547885094, "name": "Solapur South", "district": "SOLAPUR", "member": "Deshmukh Subhash Sureshchandra", "party": "BJP"}, {"lat": 17.43742589017146, "lng": 75.44759121600003, "name": "Pandharpur", "district": "SOLAPUR", "member": "Autade Samadhan Mahadeo", "party": "BJP"}, {"lat": 17.279488296243393, "lng": 75.05285381357338, "name": "Sangole", "district": "SOLAPUR", "member": "Dr. Babasaheb Annasaheb Deshmukh", "party": "PWP"}, {"lat": 17.859759433865126, "lng": 74.82870496135492, "name": "Malshiras", "district": "SOLAPUR", "member": "Uttamrao Shivdas Jankar", "party": "NCP(SP)"}, {"lat": 17.994741647237923, "lng": 74.45913568082743, "name": "Phaltan", "district": "SATARA", "member": "Sachin Patil", "party": "NCP"}, {"lat": 17.9997766510077, "lng": 73.83484590429764, "name": "Wai", "district": "SATARA", "member": "Makrand Laxmanrao Jadhav (Patil)", "party": "NCP"}, {"lat": 17.716839890185156, "lng": 74.17965382678068, "name": "Koregaon", "district": "SATARA", "member": "Mahesh Sambhajiraje Shinde", "party": "SHS"}, {"lat": 17.69683288124665, "lng": 74.67651584274645, "name": "Man", "district": "SATARA", "member": "Jaykumar Bhagavanrao Gore", "party": "BJP"}, {"lat": 17.43381615044008, "lng": 74.23127784233296, "name": "Karad North", "district": "SATARA", "member": "Manoj Bhimrao Ghorpade", "party": "BJP"}, {"lat": 17.207303526590117, "lng": 74.17742453197455, "name": "Karad South", "district": "SATARA", "member": "Dr Atulbaba Suresh Bhosale", "party": "BJP"}, {"lat": 17.311681921750946, "lng": 73.8358636895968, "name": "Patan", "district": "SATARA", "member": "Desai Shambhuraj Shivajirao", "party": "SHS"}, {"lat": 17.725773637636422, "lng": 73.74523158991221, "name": "Satara", "district": "SATARA", "member": "Shivendraraje Abhaysinhraje Bhonsle", "party": "BJP"}, {"lat": 17.82275369642568, "lng": 73.25805905630456, "name": "Dapoli", "district": "RATNAGIRI", "member": "Kadam Yogeshdada Ramdas", "party": "SHS"}, {"lat": 17.499991418327795, "lng": 73.30694936597509, "name": "Guhagar", "district": "RATNAGIRI", "member": "Jadhav Bhaskar Bhaurao", "party": "SHS-UBT"}, {"lat": 17.32942512550981, "lng": 73.66215558997986, "name": "Chiplun", "district": "RATNAGIRI", "member": "Shekhar Govindrao Nikam", "party": "NCP"}, {"lat": 17.08032399250022, "lng": 73.28127515020174, "name": "Ratnagiri", "district": "RATNAGIRI", "member": "Uday Ravindra Samant", "party": "SHS"}, {"lat": 16.693493900252815, "lng": 73.5995073964559, "name": "Rajapur", "district": "RATNAGIRI", "member": "Kiran Alias Bhaiyya Samant", "party": "SHS"}, {"lat": 16.42862812784849, "lng": 73.62592284022337, "name": "Kankavli", "district": "SINDHUDURG", "member": "Nitesh Narayan Rane", "party": "BJP"}, {"lat": 16.1114773243842, "lng": 73.81532096434898, "name": "Kudal", "district": "SINDHUDURG", "member": "Nilesh Narayan Rane", "party": "SHS"}, {"lat": 15.838946175303596, "lng": 73.8692839093059, "name": "Sawantwadi", "district": "SINDHUDURG", "member": "Deepak Vasantrao Kesarkar", "party": "SHS"}, {"lat": 15.96190805222147, "lng": 74.28685871135359, "name": "Chandgad", "district": "KOLHAPUR", "member": "Shivaji Shattupa Patil", "party": "IND"}, {"lat": 16.222297057893893, "lng": 73.95014505037935, "name": "Radhanagari", "district": "KOLHAPUR", "member": "Abitkar Prakash Anandrao", "party": "SHS"}, {"lat": 16.406954372507457, "lng": 74.29575616859738, "name": "Kagal", "district": "KOLHAPUR", "member": "Mushrif Hasan Miyalal", "party": "NCP"}, {"lat": 16.611500096059963, "lng": 74.2188358534794, "name": "Kolhapur South", "district": "KOLHAPUR", "member": "Amal Mahadevrao Mahadik", "party": "BJP"}, {"lat": 16.655755056056428, "lng": 73.98097783553918, "name": "Karvir", "district": "KOLHAPUR", "member": "Chandradeep Shashikant Narake", "party": "SHS"}, {"lat": 16.734922212348877, "lng": 74.24616917248841, "name": "Kolhapur North", "district": "KOLHAPUR", "member": "Rajesh Vinayak Kshirsagar", "party": "SHS"}, {"lat": 16.95517165684719, "lng": 73.91566210630717, "name": "Shahuwadi", "district": "KOLHAPUR", "member": "Dr. Vinay Vilasrao Kore (Savkar)", "party": "JSS"}, {"lat": 16.80650479868605, "lng": 74.37573574566996, "name": "Hatkanangle", "district": "KOLHAPUR", "member": "Dalitmitra Dr.Ashokrao Mane(Bapu", "party": "JSS"}, {"lat": 16.697627615047097, "lng": 74.45627597764714, "name": "Ichalkaranji", "district": "KOLHAPUR", "member": "Rahul Prakash Awade", "party": "BJP"}, {"lat": 16.751812452899944, "lng": 74.56149181067767, "name": "Shirol", "district": "KOLHAPUR", "member": "Raj \u0930\u093e\u091c\u0947\u0902\u0926\u094d\u0930 Shamgonda Patil (Yadravkar)", "party": "RSVA"}, {"lat": 16.83618328872015, "lng": 74.74809922860197, "name": "Miraj", "district": "SANGLI", "member": "Dr. Suresh(Bhau) Dagadu Khade", "party": "BJP"}, {"lat": 16.85006060117231, "lng": 74.56511059035303, "name": "Sangli", "district": "SANGLI", "member": "Dhananjay Hari Gadgil", "party": "BJP"}, {"lat": 16.916335546381095, "lng": 74.40671179968928, "name": "Islampur", "district": "SANGLI", "member": "Jayant Rajaram Patil", "party": "NCP(SP)"}, {"lat": 17.055714196089422, "lng": 73.99688230222613, "name": "Shirala", "district": "SANGLI", "member": "Deshmukh Satyajit Shivajirao", "party": "BJP"}, {"lat": 17.235084406803836, "lng": 74.38383322736661, "name": "Palus - Kadegaon", "district": "SANGLI", "member": "Kadam Vishwajit Patangrao", "party": "INC"}, {"lat": 17.376423301275693, "lng": 74.79471170700535, "name": "Khanapur", "district": "SANGLI", "member": "Babar Suhas Anilbhau", "party": "SHS"}, {"lat": 17.08951936071703, "lng": 74.85196452808358, "name": "Tasgaon - Kavathe Mahankal", "district": "SANGLI", "member": "Rohit Suman R.R. Aba Patil", "party": "NCP(SP)"}, {"lat": 17.13491436608995, "lng": 75.30237982182052, "name": "Jat", "district": "SANGLI", "member": "Gopichand Kundlik Padalkar", "party": "BJP"}];
-        
+        let myChart = null;
+
         // Get unique parties
         const parties = ["all", ...new Set(mapData.map(d => d.party))].sort();
         const partyFilter = document.getElementById('party-filter');
@@ -277,6 +341,15 @@
 
         const markerGroup = L.layerGroup().addTo(map);
 
+        // Analysis Toggle
+        const toggleBtn = document.getElementById('toggle-analysis');
+        const panel = document.getElementById('analysis-panel');
+        toggleBtn.addEventListener('click', () => {
+            panel.classList.toggle('open');
+            toggleBtn.classList.toggle('active');
+            toggleBtn.textContent = panel.classList.contains('open') ? '✖ Close Analysis' : '📊 Show Analysis';
+        });
+
         function updateDisplay() {
             const searchTerm = document.getElementById('search-input').value.toLowerCase();
             const selectedParty = document.getElementById('party-filter').value;
@@ -290,6 +363,8 @@
 
             // Update stats
             document.getElementById('count-value').textContent = filteredData.length;
+            const uniqueDists = [...new Set(filteredData.map(d => d.district))].length;
+            document.getElementById('dist-count-value').textContent = uniqueDists;
 
             // Update Heatmap
             heat.setLatLngs(filteredData.map(d => [d.lat, d.lng, 1.0]));
@@ -318,11 +393,70 @@
                 markerGroup.addLayer(marker);
             });
 
+            // Perform Analysis
+            updateAnalysis(filteredData);
+
             // Zoom to results if appropriate (at least one result)
             if (filteredData.length > 0 && (searchTerm || selectedParty !== 'all')) {
                 const bounds = L.latLngBounds(filteredData.map(d => [d.lat, d.lng]));
                 map.flyToBounds(bounds.pad(0.1), { duration: 0.8 });
             }
+        }
+
+        function updateAnalysis(data) {
+            if (data.length === 0) return;
+
+            // Party Distribution
+            const partyCount = {};
+            data.forEach(d => partyCount[d.party] = (partyCount[d.party] || 0) + 1);
+            
+            const sortedParties = Object.entries(partyCount).sort((a,b) => b[1] - a[1]);
+            document.getElementById('dominating-party').textContent = sortedParties[0][0];
+
+            // Chart Update
+            const labels = sortedParties.map(p => p[0]).slice(0, 5);
+            const values = sortedParties.map(p => p[1]).slice(0, 5);
+            
+            updateChart(labels, values);
+
+            // District Stats
+            const distCount = {};
+            data.forEach(d => distCount[d.district] = (distCount[d.district] || 0) + 1);
+            const avg = (data.length / Object.keys(distCount).length).toFixed(1);
+            document.getElementById('avg-seats-dist').textContent = avg;
+
+            // District Rankings (Top 5)
+            const rankedDists = Object.entries(distCount).sort((a,b) => b[1] - a[1]).slice(0,5);
+            const rankList = document.getElementById('district-rankings');
+            rankList.innerHTML = rankedDists.map(d => `
+                <div class="district-rank-item">
+                    <span>${d[0]}</span>
+                    <b style="color:#7c3aed">${d[1]} Seats</b>
+                </div>
+            `).join('');
+        }
+
+        function updateChart(labels, data) {
+            const ctx = document.getElementById('partyChart').getContext('2d');
+            if (myChart) myChart.destroy();
+            
+            myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: ['#7c3aed', '#db2777', '#f59e0b', '#10b981', '#3b82f6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    cutout: '70%'
+                }
+            });
         }
 
         document.getElementById('search-input').addEventListener('input', updateDisplay);
