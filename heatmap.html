@@ -3,280 +3,273 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maharashtra MLA Intelligence Dashboard 2024</title>
+    <title>Maharashtra MLA Intelligence Report 2024</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-color: #f8fafc;
-            --card-bg: rgba(255, 255, 255, 0.9);
-            --accent-color: #7c3aed;
-            --text-color: #1e293b;
-            --glass-border: rgba(0, 0, 0, 0.1);
+            --bi-blue: #001F3F;
+            --bi-gold: #FFD700;
+            --bi-grey: #F3F2F1;
+            --bi-border: #EDEBE9;
+            --bi-text: #323130;
+            --bi-accent: #0078D4;
         }
 
         body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            margin: 0; padding: 0; height: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bi-grey);
+            color: var(--bi-text);
             overflow: hidden;
         }
 
-        #map {
+        /* Grid Layout */
+        .container {
+            display: grid;
+            grid-template-areas: 
+                "header header header"
+                "slicers canvas visuals";
+            grid-template-columns: 260px 1fr 320px;
+            grid-template-rows: 48px 1fr;
             height: 100vh;
             width: 100vw;
-            z-index: 1;
         }
 
-        .overlay {
-            position: absolute;
-            top: 20px;
-            left: 20px;
+        /* Header */
+        header {
+            grid-area: header;
+            background-color: var(--bi-blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             z-index: 1000;
-            background: var(--card-bg);
-            backdrop-filter: blur(12px);
-            padding: 24px;
-            border-radius: 20px;
-            border: 1px dashed var(--glass-border);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            max-width: 320px;
-            transition: all 0.3s ease;
         }
 
-        .analysis-panel {
-            position: absolute;
-            top: 20px;
-            right: -400px;
-            bottom: 20px;
-            width: 350px;
-            z-index: 1001;
-            background: var(--card-bg);
-            backdrop-filter: blur(16px);
-            padding: 24px;
-            border-radius: 24px;
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
-            transition: right 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        .brand { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .report-name { font-size: 14px; opacity: 0.8; }
+
+        /* Left Side (Slicers) */
+        .slicers {
+            grid-area: slicers;
+            background: white;
+            border-right: 1px solid var(--bi-border);
+            padding: 15px;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 20px;
-            overflow-y: auto;
         }
 
-        .analysis-panel.open {
-            right: 20px;
+        .slicer-tile {
+            border: 1px solid var(--bi-border);
+            border-radius: 4px;
+            background: #FAF9F8;
         }
 
-        h1, h2 {
-            margin: 0 0 8px 0;
+        .slicer-header {
+            background: #E1DFDD;
+            padding: 6px 12px;
+            font-size: 12px;
             font-weight: 600;
-            background: linear-gradient(135deg, #7c3aed, #2563eb);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        h1 { font-size: 20px; letter-spacing: -0.5px; }
-        h2 { font-size: 18px; }
-
-        .filters {
-            margin-top: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .filter-group label {
-            font-size: 10px;
             text-transform: uppercase;
-            font-weight: 600;
-            color: #94a3b8;
-            margin-bottom: 4px;
-            display: block;
+            border-bottom: 1px solid var(--bi-border);
         }
+
+        .slicer-content { padding: 10px; }
 
         input[type="text"], select {
             width: 100%;
-            background: rgba(0, 0, 0, 0.03);
-            border: 1px solid var(--glass-border);
-            border-radius: 10px;
-            padding: 10px 12px;
-            color: var(--text-color);
+            border: 1px solid var(--bi-border);
+            padding: 8px;
             font-family: inherit;
-            box-sizing: border-box;
-            outline: none;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .stat-box {
-            background: #fff;
-            padding: 15px;
-            border-radius: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            text-align: center;
-        }
-
-        .stat-box span { display: block; }
-        .stat-num { font-size: 22px; font-weight: 600; color: var(--accent-color); }
-        .stat-tag { font-size: 10px; color: #64748b; text-transform: uppercase; }
-
-        .actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 5px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 12px;
-            border-radius: 12px;
-            border: none;
-            font-family: inherit;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
             font-size: 13px;
+            box-sizing: border-box;
+            outline-color: var(--bi-accent);
         }
 
-        .btn-primary { background: var(--accent-color); color: white; }
-        .btn-outline { background: white; border: 1px solid var(--accent-color); color: var(--accent-color); }
+        /* Main Canvas (Map) */
+        .canvas {
+            grid-area: canvas;
+            position: relative;
+            background: #FFF;
+        }
 
-        #toggle-analysis {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 1002;
-            padding: 12px 24px;
+        #map { height: 100%; width: 100%; }
+
+        /* Right Side (Visuals) */
+        .visuals {
+            grid-area: visuals;
             background: white;
-            border: 1px solid var(--glass-border);
-            border-radius: 30px;
-            font-family: inherit;
+            border-left: 1px solid var(--bi-border);
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .card-tile {
+            background: white;
+            border: 1px solid var(--bi-border);
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .card-header {
+            padding: 8px 12px;
+            font-size: 13px;
             font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transition: all 0.3s;
+            border-bottom: 1px solid var(--bi-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        #toggle-analysis.active {
-            background: var(--accent-color);
-            color: white;
-        }
+        .card-body { padding: 12px; min-height: 100px; }
 
-        /* Responsive Mobile */
-        @media (max-width: 768px) {
-            .overlay {
-                top: auto;
-                bottom: 20px;
-                left: 10px;
-                right: 10px;
-                max-width: none;
-                border-radius: 24px;
-            }
-            .analysis-panel {
-                width: 100%;
-                height: 70vh;
-                right: 0;
-                bottom: -100%;
-                top: auto;
-                border-radius: 32px 32px 0 0;
-                transition: bottom 0.5s ease;
-            }
-            .analysis-panel.open { bottom: 0; }
-            #toggle-analysis { top: 10px; right: 10px; padding: 10px 18px; font-size: 12px; }
-        }
+        .metric { text-align: center; }
+        .metric-value { font-size: 32px; font-weight: 600; color: var(--bi-accent); display: block; }
+        .metric-label { font-size: 11px; color: #605E5C; text-transform: uppercase; }
 
-        .chart-box {
-            height: 220px;
-            width: 100%;
-        }
+        .chart-container { height: 200px; width: 100%; }
 
-        .district-table {
+        .data-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 12px;
         }
 
-        .district-table td { padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
-        .district-table tr:last-child td { border: none; }
+        .data-table tr:nth-child(even) { background: #FAF9F8; }
+        .data-table td { padding: 8px 4px; border-bottom: 1px solid var(--bi-border); }
 
-        /* Leaflet Controls Customization */
-        .leaflet-control-layers {
-            border-radius: 12px !important;
-            border: none !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+        /* BI Specific Visuals */
+        .color-bar { height: 4px; width: 100%; position: absolute; top: 0; left: 0; }
+
+        /* Export Button */
+        #export-csv {
+            background: var(--bi-accent);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 2px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        #export-csv:hover { opacity: 0.9; }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-areas: 
+                    "header header"
+                    "slicers canvas"
+                    "visuals visuals";
+                grid-template-columns: 240px 1fr;
+                grid-template-rows: 48px 1fr auto;
+            }
+            .visuals { border-left: none; border-top: 1px solid var(--bi-border); flex-direction: row; flex-wrap: wrap; }
+            .card-tile { flex: 1; min-width: 250px; }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-areas: 
+                    "header"
+                    "canvas"
+                    "slicers"
+                    "visuals";
+                grid-template-columns: 1fr;
+                grid-template-rows: 48px 1fr auto auto;
+            }
+            .slicers, .visuals { border: none; }
         }
     </style>
 </head>
 <body>
-    <button id="toggle-analysis">📊 Analysis Dashboard</button>
 
-    <div class="overlay" id="main-overlay">
-        <h1>MLA Intel Hub</h1>
-        <p style="font-size: 12px; color: #64748b; margin-top: -5px;">Maharashtra State 2024</p>
-        
-        <div class="filters">
-            <div class="filter-group">
-                <label>Dynamic Search</label>
-                <input type="text" id="search-input" placeholder="Search Constituency or MLA...">
+    <div class="container">
+        <header>
+            <div class="brand">
+                <div style="background: var(--bi-gold); width: 24px; height: 24px; border-radius: 4px;"></div>
+                Maharashtra Intelligence Report
             </div>
-            <div class="filter-group">
-                <label>Filter by Party</label>
-                <select id="party-filter">
-                    <option value="all">All Political Units</option>
-                </select>
-            </div>
-            <div class="actions">
-                <button class="btn btn-outline" id="export-csv">📥 Export CSV</button>
-            </div>
-        </div>
+            <div class="report-name">Election Dashboard 2024 / Live Analysis</div>
+            <button id="export-csv">Export Current View (.csv)</button>
+        </header>
 
-        <div class="stats-grid">
-            <div class="stat-box">
-                <span class="stat-num" id="count-value">288</span>
-                <span class="stat-tag">Seats</span>
+        <section class="slicers">
+            <div class="slicer-tile">
+                <div class="slicer-header">Search Filters</div>
+                <div class="slicer-content">
+                    <input type="text" id="search-input" placeholder="Search Constituency or MLA...">
+                </div>
             </div>
-            <div class="stat-box">
-                <span class="stat-num" id="dist-count-value">36</span>
-                <span class="stat-tag">Districts</span>
+
+            <div class="slicer-tile">
+                <div class="slicer-header">Party Slicer</div>
+                <div class="slicer-content">
+                    <select id="party-filter">
+                        <option value="all">All Political Parties</option>
+                    </select>
+                </div>
             </div>
-        </div>
+
+            <div class="card-tile">
+                <div class="card-header">Report Summary</div>
+                <div class="card-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="metric">
+                        <span class="metric-value" id="count-value">288</span>
+                        <span class="metric-label">Seats</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-value" id="dist-count-value">36</span>
+                        <span class="metric-label">Districts</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <main class="canvas">
+            <div id="map"></div>
+        </main>
+
+        <section class="visuals">
+            <div class="card-tile">
+                <div class="color-bar" style="background: var(--bi-accent);"></div>
+                <div class="card-header">Party Distribution (Top 5)</div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="partyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-tile">
+                <div class="color-bar" style="background: #107C10;"></div>
+                <div class="card-header">Dominating Political Power</div>
+                <div class="card-body metric">
+                    <span class="metric-value" id="dominating-party" style="font-size: 24px;">-</span>
+                    <span class="metric-label">Majority Unit</span>
+                </div>
+            </div>
+
+            <div class="card-tile">
+                <div class="color-bar" style="background: #D83B01;"></div>
+                <div class="card-header">District Rankings</div>
+                <div class="card-body">
+                    <table class="data-table" id="district-rankings"></table>
+                </div>
+            </div>
+        </section>
     </div>
-
-    <div class="analysis-panel" id="analysis-panel">
-        <h2 style="display: flex; justify-content: space-between; align-items: center;">
-            Strategic Insights
-            <span style="font-size: 10px; color: #94a3b8; font-weight: normal;">Live Update</span>
-        </h2>
-        
-        <div class="stat-box" style="padding: 20px;">
-            <span class="stat-tag">Dominating Sentiment</span>
-            <span class="stat-num" id="dominating-party" style="font-size: 28px;">-</span>
-        </div>
-
-        <div>
-            <span class="stat-tag" style="margin-bottom: 10px; display: block;">Party Market Share</span>
-            <div class="chart-box">
-                <canvas id="partyChart"></canvas>
-            </div>
-            <p style="font-size: 10px; text-align: center; color: #94a3b8; margin-top: 10px;">Click segments to filter map</p>
-        </div>
-
-        <div>
-            <span class="stat-tag" style="margin-bottom: 15px; display: block;">District Dominance (Top 5)</span>
-            <table class="district-table" id="district-rankings"></table>
-        </div>
-    </div>
-
-    <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
@@ -285,7 +278,7 @@
         const PARTY_COLORS = {"BJP": "#FF9933", "SHS": "#FF7722", "SHS-UBT": "#E35F21", "INC": "#19AAED", "NCP": "#00B2B2", "NCP(SP)": "#0080FF", "SP": "#228B22", "AIMIM": "#000000", "CPI(M)": "#FF0000", "Independent": "#808080"};
         let myChart = null;
 
-        // Initialize Filter UI
+        // Initialize Slicers
         const parties = ["all", ...new Set(mapData.map(d => d.party))].sort();
         const partyFilter = document.getElementById('party-filter');
         parties.filter(p => p !== "all").forEach(p => {
@@ -294,25 +287,20 @@
             partyFilter.appendChild(opt);
         });
 
-        // Map Setup with Layer Control
+        // Map Setup
         const lightMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png');
         const satelliteMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
         
         const map = L.map('map', { zoomControl: false, attributionControl: false, layers: [lightMap] }).setView([19.7515, 75.7139], 7);
         
-        const baseMaps = { "Clean Light": lightMap, "Geospatial Satellite": satelliteMap };
+        const baseMaps = { "Road": lightMap, "Satellite": satelliteMap };
         L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
         L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-        const heat = L.heatLayer([], { radius: 35, blur: 25, maxZoom: 14, 
-            gradient: {0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red'} 
+        const heat = L.heatLayer([], { radius: 30, blur: 20, maxZoom: 14, 
+            gradient: {0.4: 'rgba(0,120,212,0.4)', 0.6: 'cyan', 0.8: 'gold', 1.0: 'crimson'} 
         }).addTo(map);
         const markerGroup = L.layerGroup().addTo(map);
-
-        // Core Functions
-        function getPartyColor(party) {
-            return PARTY_COLORS[party] || '#7c3aed';
-        }
 
         function updateDisplay() {
             const searchTerm = document.getElementById('search-input').value.toLowerCase();
@@ -327,19 +315,19 @@
             document.getElementById('count-value').textContent = filteredData.length;
             document.getElementById('dist-count-value').textContent = [...new Set(filteredData.map(d => d.district))].length;
 
-            heat.setLatLngs(filteredData.map(d => [d.lat, d.lng, 1.0]));
+            heat.setLatLngs(filteredData.map(d => [d.lat, d.lng, 0.8]));
             markerGroup.clearLayers();
             
             filteredData.forEach(d => {
-                const pColor = getPartyColor(d.party);
+                const pColor = PARTY_COLORS[d.party] || '#0078D4';
                 const marker = L.circleMarker([d.lat, d.lng], {
-                    radius: 5, fillColor: pColor, color: '#fff', weight: 1.5, opacity: 0.8, fillOpacity: 0.9
+                    radius: 5, fillColor: pColor, color: '#fff', weight: 1, opacity: 0.8, fillOpacity: 0.9
                 });
-                marker.bindPopup(`<div style="font-family: 'Outfit';">
-                    <b style="color:${pColor}; font-size: 16px;">${d.name}</b><br>
-                    <span style="font-size: 13px;">${d.district} District</span><hr style="opacity: 0.1">
+                marker.bindPopup(`<div style="font-family: 'Segoe UI'; min-width: 150px;">
+                    <b style="color:${pColor}; font-size: 14px;">${d.name}</b><br>
+                    <span style="font-size: 12px; color: #605E5C;">${d.district}</span><hr style="border: 0; border-top: 1px solid #EDEBE9;">
                     <span style="font-size: 12px; font-weight: 600;">MLA: ${d.member}</span><br>
-                    <span style="font-size: 11px; color: #64748b;">${d.party}</span>
+                    <span style="font-size: 11px; color: #605E5C;">${d.party}</span>
                 </div>`);
                 markerGroup.addLayer(marker);
             });
@@ -347,36 +335,51 @@
             updateAnalysis(filteredData);
             if (filteredData.length > 0 && (searchTerm || selectedParty !== 'all')) {
                 const bounds = L.latLngBounds(filteredData.map(d => [d.lat, d.lng]));
-                map.flyToBounds(bounds.pad(0.2), { duration: 0.6 });
+                map.flyToBounds(bounds.pad(0.3), { duration: 0.8 });
             }
         }
 
         function updateAnalysis(data) {
-            if (data.length === 0) return;
+            if (data.length === 0) {
+                 if (myChart) myChart.destroy();
+                 document.getElementById('dominating-party').textContent = '-';
+                 document.getElementById('district-rankings').innerHTML = '';
+                 return;
+            }
             const partyCount = {};
             data.forEach(d => partyCount[d.party] = (partyCount[d.party] || 0) + 1);
             const sorted = Object.entries(partyCount).sort((a,b) => b[1] - a[1]);
             
-            document.getElementById('dominating-party').textContent = sorted[0][0];
-            document.getElementById('dominating-party').style.color = getPartyColor(sorted[0][0]);
+            const mainParty = sorted[0][0];
+            document.getElementById('dominating-party').textContent = mainParty;
+            document.getElementById('dominating-party').style.color = PARTY_COLORS[mainParty] || '#0078D4';
 
             const labels = sorted.slice(0, 5).map(p => p[0]);
             const values = sorted.slice(0, 5).map(p => p[1]);
-            const colors = labels.map(l => getPartyColor(l));
+            const colors = labels.map(l => PARTY_COLORS[l] || '#0078D4');
 
             const ctx = document.getElementById('partyChart').getContext('2d');
             if (myChart) myChart.destroy();
             myChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }] },
+                type: 'bar',
+                data: { 
+                    labels: labels, 
+                    datasets: [{ 
+                        label: 'Seats',
+                        data: values, 
+                        backgroundColor: colors,
+                        borderRadius: 4
+                    }] 
+                },
                 options: {
-                    responsive: true, maintainAspectRatio: false, cutout: '75%',
+                    indexAxis: 'y',
+                    responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
+                    scales: { x: { grid: { display: false } }, y: { grid: { display: false } } },
                     onClick: (evt, elements) => {
                         if (elements.length > 0) {
                             const index = elements[0].index;
-                            const party = labels[index];
-                            document.getElementById('party-filter').value = party;
+                            document.getElementById('party-filter').value = labels[index];
                             updateDisplay();
                         }
                     }
@@ -388,18 +391,11 @@
             const rankedDist = Object.entries(distCount).sort((a,b) => b[1] - a[1]).slice(0,5);
             document.getElementById('district-rankings').innerHTML = rankedDist.map(d => `
                 <tr>
-                    <td style="font-weight: 600;">${d[0]}</td>
-                    <td style="text-align: right; color: var(--accent-color); font-weight: 600;">${d[1]} Seats</td>
+                    <td style="font-weight: 600; color: #323130;">${d[0]}</td>
+                    <td style="text-align: right; color: var(--bi-accent); font-weight: 600;">${d[1]}</td>
                 </tr>
             `).join('');
         }
-
-        // Controls
-        document.getElementById('toggle-analysis').onclick = (e) => {
-            const panel = document.getElementById('analysis-panel');
-            panel.classList.toggle('open');
-            e.target.classList.toggle('active');
-        };
 
         document.getElementById('search-input').oninput = updateDisplay;
         document.getElementById('party-filter').onchange = updateDisplay;
@@ -421,12 +417,10 @@
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', 'maharashtra_mla_filtered.csv');
+            a.setAttribute('hidden', ''); a.setAttribute('href', url);
+            a.setAttribute('download', 'powerbi_report_export.csv');
             document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            a.click(); document.body.removeChild(a);
         };
 
         updateDisplay();
